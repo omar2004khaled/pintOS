@@ -1,5 +1,6 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
+#include "threads/synch.h"
 
 #include <debug.h>
 #include <list.h>
@@ -90,6 +91,12 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
+
+    int64_t wake_tick;               // When this thread should wake up
+    struct semaphore wakeUp;     // Per-thread sleep semaphore
+    struct list_elem sleep_elem;     // List element for sleep_queue
+    
+    
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
