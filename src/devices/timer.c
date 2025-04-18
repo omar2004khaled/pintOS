@@ -7,7 +7,12 @@
 #include "threads/interrupt.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-  
+#include "threads/thread.h"
+#include "threads/synch.h"
+#include "lib/kernel/list.h"
+
+static struct list sleep_queue;  // Global ordered sleep list
+
 /* See [8254] for hardware details of the 8254 timer chip. */
 
 #if TIMER_FREQ < 19
@@ -34,10 +39,19 @@ static void real_time_delay (int64_t num, int32_t denom);
    and registers the corresponding interrupt. */
 void
 timer_init (void) 
-{
+{ list_init(&sleep_queue);
+
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
 }
+
+
+bool comparatorFunc(const struct list_elem *a,  //func to compare wake ticks 
+  const struct list_elem *b,
+  void *aux UNUSED) {
+    return list_entry(a, struct thread, sleep_elem)->wake_tick < list_entry(b, struct thread, sleep_elem)->wake_tick;
+}
+
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
 void
@@ -65,7 +79,7 @@ timer_calibrate (void)
 
   printf ("%'"PRIu64" loops/s.\n", (uint64_t) loops_per_tick * TIMER_FREQ);
 }
-
+ 
 /* Returns the number of timer ticks since the OS booted. */
 int64_t
 timer_ticks (void) 
@@ -92,8 +106,18 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+//  while (timer_elapsed (start) < ticks) 
+//    thread_yield ();
+if (ticks <= 0) return;
+
+thread_current()->wake_tick = timer_ticks() + ticks;
+
+enum intr_level old_level ;
+old_level = intr_disable();
+list_insert_ordered(&sleep_queue, &thread_current()->sleep_elem, comparatorFunc, NULL);
+intr_set_level(old_level);  // Re-enable before blocking
+
+sema_down(&thread_current()->wakeUp);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -172,6 +196,13 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  while (!list_empty(&sleep_queue)) {
+    struct thread *t = list_entry(list_front(&sleep_queue), struct thread, sleep_elem);
+    if (t->wake_tick > ticks) break;
+
+    list_pop_front(&sleep_queue);
+    sema_up(&t->wakeUp);
+}
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
