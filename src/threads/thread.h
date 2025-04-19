@@ -81,6 +81,10 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
+////////////////// FIX ME Task 2 //////////////////////////
+// List of locks for scheduling, we should pick the lock that has highest donated priority
+
 struct thread
   {
     /* Owned by thread.c. */
@@ -107,6 +111,7 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
   };
 
+////////////////// Task 3 //////////////////////////
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
