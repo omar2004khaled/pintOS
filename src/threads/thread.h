@@ -94,6 +94,7 @@ struct thread
     int64_t wake_tick;
     struct semaphore sleep_sema;
     struct list_elem sleep_elem;
+    int nice;
     
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
