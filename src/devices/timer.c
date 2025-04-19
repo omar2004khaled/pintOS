@@ -5,14 +5,13 @@
 #include <stdio.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
-#include "threads/synch.h"
-#include "threads/thread.h"
 #include "threads/thread.h"
 #include "threads/synch.h"
 #include "lib/kernel/list.h"
 
-static struct list sleep_queue;  // Global ordered sleep list
+static struct list sleep_queue;
 
+  
 /* See [8254] for hardware details of the 8254 timer chip. */
 
 #if TIMER_FREQ < 19
@@ -44,12 +43,12 @@ timer_init (void)
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
 }
-
-
-bool comparatorFunc(const struct list_elem *a,  //func to compare wake ticks 
+bool wake_tick_less(const struct list_elem *a,
   const struct list_elem *b,
   void *aux UNUSED) {
-    return list_entry(a, struct thread, sleep_elem)->wake_tick < list_entry(b, struct thread, sleep_elem)->wake_tick;
+struct thread *ta = list_entry(a, struct thread, sleep_elem);
+struct thread *tb = list_entry(b, struct thread, sleep_elem);
+return ta->wake_tick < tb->wake_tick;
 }
 
 
@@ -79,7 +78,7 @@ timer_calibrate (void)
 
   printf ("%'"PRIu64" loops/s.\n", (uint64_t) loops_per_tick * TIMER_FREQ);
 }
- 
+
 /* Returns the number of timer ticks since the OS booted. */
 int64_t
 timer_ticks (void) 
@@ -103,21 +102,22 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();
+//  int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
 //  while (timer_elapsed (start) < ticks) 
 //    thread_yield ();
 if (ticks <= 0) return;
 
-thread_current()->wake_tick = timer_ticks() + ticks;
+struct thread *cur = thread_current();
+cur->wake_tick = timer_ticks() + ticks;
+sema_init(&cur->sleep_sema, 0);  // Safe every time
 
-enum intr_level old_level ;
-old_level = intr_disable();
-list_insert_ordered(&sleep_queue, &thread_current()->sleep_elem, comparatorFunc, NULL);
-intr_set_level(old_level);  // Re-enable before blocking
+enum intr_level old_level = intr_disable();
+list_insert_ordered(&sleep_queue, &cur->sleep_elem, wake_tick_less, NULL);
+intr_set_level(old_level);  // Interrupts ON before blocking
 
-sema_down(&thread_current()->wakeUp);
+sema_down(&cur->sleep_sema);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -197,12 +197,12 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
   while (!list_empty(&sleep_queue)) {
-    struct thread *t = list_entry(list_front(&sleep_queue), struct thread, sleep_elem);
-    if (t->wake_tick > ticks) break;
+        struct thread *t = list_entry(list_front(&sleep_queue), struct thread, sleep_elem);
+        if (t->wake_tick > ticks) break;
 
-    list_pop_front(&sleep_queue);
-    sema_up(&t->wakeUp);
-}
+        list_pop_front(&sleep_queue);
+        sema_up(&t->sleep_sema);
+    }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
