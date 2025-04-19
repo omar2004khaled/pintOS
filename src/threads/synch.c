@@ -105,6 +105,9 @@ sema_try_down (struct semaphore *sema)
    and wakes up one thread of those waiting for SEMA, if any.
 
    This function may be called from an interrupt handler. */
+
+////////////////// FIX ME Task 2 //////////////////////////
+  
 void
 sema_up (struct semaphore *sema) 
 {
@@ -225,6 +228,7 @@ lock_try_acquire (struct lock *lock)
    An interrupt handler cannot acquire a lock, so it does not
    make sense to try to release a lock within an interrupt
    handler. */
+////////////////// FIX ME Task 2 //////////////////////////
 void
 lock_release (struct lock *lock) 
 {

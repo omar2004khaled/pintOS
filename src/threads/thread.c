@@ -179,6 +179,8 @@ thread_create (const char *name, int priority,
   if (t == NULL)
     return TID_ERROR;
 
+  ////////////////// FIX ME Task 3 //////////////////////////
+  // Each child thread should inherit the parent's nice, and recent_cpu, hence parent creates priority for child
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
@@ -298,6 +300,8 @@ thread_exit (void)
 
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
+
+////////////////// FIX ME Task 2 //////////////////////////
 void
 thread_yield (void) 
 {
@@ -345,6 +349,8 @@ thread_get_priority (void)
   return thread_current ()->priority;
 }
 
+
+////////////////// FIX ME Task 3 //////////////////////////
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) 

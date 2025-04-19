@@ -97,6 +97,8 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
+
+////////////////// FIX ME Task 1 //////////////////////////
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
@@ -190,6 +192,10 @@ timer_print_stats (void)
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
 
+
+////////////////// FIX ME Task 1 //////////////////////////
+// Note, this may make advanced scheduling tests fail
+// Must be very optimised
 /* Timer interrupt handler. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
