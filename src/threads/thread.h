@@ -104,6 +104,8 @@ struct thread
     // Multiple donation:
     // T1 (100), T2 (200), and T3 (500) all wait on T4 (20), so T4 should be 500
     
+    // Each lock has a list of threads that are waiting on it
+
     int effective_priority;             // > priority 
     struct list_elem allelem;           /* List element for all threads list. */
  
