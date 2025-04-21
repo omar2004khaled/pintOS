@@ -11,6 +11,8 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/fixed_point.h"
+#include "threads/fixed_point.c"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -58,7 +60,10 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
-
+///////////////////////////////////////////////////////////
+// avg running thread in last minute 
+real load_avg = {0};
+//////////////////////////////////////////////////////////
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -366,15 +371,18 @@ thread_get_nice (void)
   return thread_current ()->nice;
 
 }
-
-/* Returns 100 times the system load average. */
+////////////////////////////////////////////////////
+/* Returns 100 times the system load average. */  // You have to round to the nearest integer since load avg is real number
 int
 thread_get_load_avg (void) 
-{
-  /* Not yet implemented. */
-  return 0;
+{ 
+ return Convert_x_to_integer_round_nearest(
+  Multiply_x_by_y(
+      load_avg,                       
+      Convert_n_to_fixed_point(100)    
+  ));
 }
-
+//////////////////////////////////////////////////////////
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
@@ -601,3 +609,74 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+load_avg = Add_x_and_y(
+    Multiply_x_by_y(
+        Divide_x_by_y(
+            Convert_n_to_fixed_point(59), 
+            Convert_n_to_fixed_point(60)
+        ), 
+        load_avg
+    ),
+    Multiply_x_by_y(
+        Divide_x_by_y(
+            Convert_n_to_fixed_point(1), 
+            Convert_n_to_fixed_point(60)
+        ), 
+        Convert_n_to_fixed_point(ready_threads)
+    )
+)
+
+
+recent_cpu = Add_x_and_y(
+    Multiply_x_by_y(
+        Divide_x_by_y(
+            Multiply_x_by_y(
+                Convert_n_to_fixed_point(2),
+                load_avg
+            ),
+            Add_x_and_y(
+                Multiply_x_by_y(
+                    Convert_n_to_fixed_point(2),
+                    load_avg
+                ),
+                Convert_n_to_fixed_point(1)
+            )
+        ),
+        recent_cpu
+    ),
+    Convert_n_to_fixed_point(nice)
+);
+
+
+
+
+priority = PRI_MAX - 
+    Convert_x_to_integer_round_zero(
+        Divide_x_by_y(
+            recent_cpu,
+            Convert_n_to_fixed_point(4)
+        )
+    ) - 
+    (nice * 2);
+
+
+
+
+
+*/
