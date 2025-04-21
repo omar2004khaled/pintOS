@@ -355,15 +355,15 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+  thread_current ()->nice = nice;
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current ()->nice;
+
 }
 
 /* Returns 100 times the system load average. */
@@ -495,7 +495,12 @@ alloc_frame (struct thread *t, size_t size)
    idle_thread. */
 static struct thread *
 next_thread_to_run (void) 
-{
+{ if(thread_mlfqs){
+ //advanced
+ }
+ else{
+  //priority
+ }
   if (list_empty (&ready_list))
     return idle_thread;
   else
