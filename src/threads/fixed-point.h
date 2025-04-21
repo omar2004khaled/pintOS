@@ -1,6 +1,7 @@
+/*
 #ifndef THREADS_FIXED_POINT_H   //header gaurd recommended so that file is not included more than once
 #define THREADS_FIXED_POINT_H
-#define f 16384  // 2^14 
+#define F 16384  // 2^14 
 #include <stdint.h>    // ((int64_t)x) * y / F    prevent overflow here .
 
 typedef struct real{
@@ -26,3 +27,4 @@ int Multiply_m_by_n(int m, int n);
 int Divide_m_by_n(int m , int n);
 
 #endif
+*/
