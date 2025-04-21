@@ -340,6 +340,7 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+////////////////// Task 2 //////////////////////////
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
@@ -565,6 +566,7 @@ alloc_frame (struct thread *t, size_t size)
   return t->stack;
 }
 
+////////////////// Task 2 & 3 //////////////////////////
 /* Chooses and returns the next thread to be scheduled.  Should
    return a thread from the run queue, unless the run queue is
    empty.  (If the running thread can continue running, then it
@@ -576,7 +578,11 @@ next_thread_to_run (void)
  //advanced
  }
  else{
-  //priority
+  ////////////////// Task 2 //////////////////////////
+  //priority return the thread with highest priority
+  // In donation, in lock, unlock, semaup, semadown
+  // list_sort
+
  }
   if (list_empty (&ready_list))
     return idle_thread;
@@ -630,6 +636,8 @@ thread_schedule_tail (struct thread *prev)
     }
 }
 
+
+////////////////// Task 2 //////////////////////////
 /* Schedules a new process.  At entry, interrupts must be off and
    the running process's state must have been changed from
    running to some other state.  This function finds another

@@ -94,6 +94,19 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    // Donated priority,
+    // T1 (100) waits on T2 (20) to finish, so
+    // T2 donated priority is 100 and
+    // but if T1(20) waits on T2(100), then T2 remains as is; 
+
+    // Nested donation:
+    // T1 (100) waits on T2 (50) waits on T3 (20), so T2 and T3 should be 100
+    // Multiple donation:
+    // T1 (100), T2 (200), and T3 (500) all wait on T4 (20), so T4 should be 500
+    
+    // Each lock has a list of threads that are waiting on it
+
+    int effective_priority;             // > priority 
     struct list_elem allelem;           /* List element for all threads list. */
  
     int64_t wake_tick;
@@ -143,6 +156,7 @@ void thread_yield (void);
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
+////////////////// Task 2 //////////////////////////
 int thread_get_priority (void);
 void thread_set_priority (int);
 
