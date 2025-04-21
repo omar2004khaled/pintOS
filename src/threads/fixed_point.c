@@ -1,6 +1,6 @@
 
-#include "fixed-point.h"
-
+#include "fixed_point.h"
+#include <stdint.h>
 // n aand m are integer          while               x and y are fixed points 
 
 real Convert_n_to_fixed_point(int n){

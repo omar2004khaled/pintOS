@@ -202,14 +202,17 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
-  if(ticks %4==0){
-  // loop over all threads and update priority
-  }
+if (thread_mlfqs){
+  //increment the recent cpu of the running thread
+
   if(ticks % TIMER_FREQ==0){
   // recent_cpu  
   // load_avg
-
   }
+  if(ticks %4==0){
+    // loop over all threads and update priority
+    }
+}
   // Handle the sleeping thread for alarm part 
   while (!list_empty(&sleep_queue)) {
         struct thread *t = list_entry(list_front(&sleep_queue), struct thread, sleep_elem);
