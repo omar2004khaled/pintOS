@@ -381,14 +381,83 @@ thread_get_load_avg (void)
       Convert_n_to_fixed_point(100)    
   ));
 }
+void 
+update_load_avg(void){
+  int ready_threads = list_size(&ready_list); // Threads in ready queue
+  if (thread_current() != idle_thread) {
+      ready_threads++; // Include the running thread (if not idle)
+  }
+  load_avg = Add_x_and_y(
+    Multiply_x_by_y(
+        Divide_x_by_y(
+            Convert_n_to_fixed_point(59), 
+            Convert_n_to_fixed_point(60)
+        ), 
+        load_avg
+    ),
+    Multiply_x_by_y(
+        Divide_x_by_y(
+            Convert_n_to_fixed_point(1), 
+            Convert_n_to_fixed_point(60)
+        ), 
+        Convert_n_to_fixed_point(ready_threads)
+    )
+);
+}
+void 
+inc_recent_cpu(void){
+  struct thread *curr = thread_current();
+  curr->recent_cpu = Add_x_and_y(curr->recent_cpu,Convert_n_to_fixed_point(1));
+}
 //////////////////////////////////////////////////////////
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
-{
-  /* Not yet implemented. */
-  return 0;
+{ struct thread *curr = thread_current();
+  return Convert_x_to_integer_round_nearest(
+    Multiply_x_by_y(
+      curr->recent_cpu,                       
+        Convert_n_to_fixed_point(100)    
+    ));
 }
+void
+update_recent_cpu(struct thread *t){
+  if (t == idle_thread) return;
+  t->recent_cpu = Add_x_and_y(
+    Multiply_x_by_y(
+        Divide_x_by_y(
+            Multiply_x_by_y(
+                Convert_n_to_fixed_point(2),
+                load_avg
+            ),
+            Add_x_and_y(
+                Multiply_x_by_y(
+                    Convert_n_to_fixed_point(2),
+                    load_avg
+                ),
+                Convert_n_to_fixed_point(1)
+            )
+        ),
+        t->recent_cpu
+    ),
+    Convert_n_to_fixed_point(t->nice)
+);
+}
+void
+update_priority(void)
+{
+  struct thread *curr = thread_current();
+  if (curr == idle_thread) return;
+  curr->priority = PRI_MAX - 
+    Convert_x_to_integer_round_zero(
+        Divide_x_by_y(
+            curr->recent_cpu,
+            Convert_n_to_fixed_point(4)
+        )
+    ) - 
+    (curr->nice * 2);
+}
+////////////////////////////////////////////////////
 
 /* Idle thread.  Executes when no other thread is ready to run.
 

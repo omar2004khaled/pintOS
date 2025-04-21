@@ -38,7 +38,7 @@ static void real_time_delay (int64_t num, int32_t denom);
    and registers the corresponding interrupt. */
 void
 timer_init (void) 
-{ list_init(&sleep_queue);
+{ list_init(&sleep_queue); //init here 
 
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
@@ -204,13 +204,14 @@ timer_interrupt (struct intr_frame *args UNUSED)
   thread_tick ();
 if (thread_mlfqs){
   //increment the recent cpu of the running thread
-
+  inc_recent_cpu();
   if(ticks % TIMER_FREQ==0){
-  // recent_cpu  
-  // load_avg
+
+  thread_foreach(update_recent_cpu,NULL);
   }
   if(ticks %4==0){
-    // loop over all threads and update priority
+
+    thread_foreach(update_priority,NULL);
     }
 }
   // Handle the sleeping thread for alarm part 
