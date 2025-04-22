@@ -206,14 +206,16 @@ if (thread_mlfqs){
   //increment the recent cpu of the running thread
   inc_recent_cpu();
   if(ticks % TIMER_FREQ==0){
-
+    update_load_avg();
   thread_foreach(update_recent_cpu,NULL);
   }
   if(ticks %4==0){
 
     thread_foreach(update_priority,NULL);
+    
     }
 }
+enum intr_level old_level = intr_disable ();
   // Handle the sleeping thread for alarm part 
   while (!list_empty(&sleep_queue)) {
         struct thread *t = list_entry(list_front(&sleep_queue), struct thread, sleep_elem);
@@ -222,6 +224,7 @@ if (thread_mlfqs){
         list_pop_front(&sleep_queue);
         sema_up(&t->sleep_sema);
     }
+    intr_set_level (old_level);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

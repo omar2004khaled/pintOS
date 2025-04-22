@@ -62,7 +62,7 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 bool thread_mlfqs;
 ///////////////////////////////////////////////////////////
 // avg running thread in last minute 
-real load_avg = {0};
+real load_avg ;
 //////////////////////////////////////////////////////////
 static void kernel_thread (thread_func *, void *aux);
 
@@ -75,6 +75,21 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+int thread_get_priority (void);
+void thread_set_priority (int);
+
+int thread_get_nice (void);
+void thread_set_nice (int);
+int thread_get_recent_cpu (void);
+void 
+inc_recent_cpu(void);
+void 
+update_load_avg(void);
+void
+update_recent_cpu(struct thread *t);
+void
+update_priority(struct thread *t);
+int thread_get_load_avg (void);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -103,6 +118,8 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  if (thread_mlfqs){load_avg = Convert_n_to_fixed_point(0);  }                           /////////////////////////////////////////////
+ 
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -204,6 +221,13 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
+
+  if (thread_mlfqs) {
+    t->nice = thread_current()->nice;
+    t->recent_cpu = thread_current()->recent_cpu;          /////////////////////
+    //  t->nice = thread_current() ? thread_current()->nice : 0;
+   //t->recent_cpu = thread_current() ? thread_current()->recent_cpu : 0;
+  }
 
   /* Add to run queue. */
   thread_unblock (t);
@@ -362,9 +386,13 @@ void
 thread_set_nice (int nice UNUSED) 
 {
   thread_current ()->nice = nice;
+  struct thread *t = thread_current();
+  update_priority(t);                                        /////////////////////////////////////////////////////////////////////////////////////
+
+  thread_yield();
 }
 
-/* Returns the current thread's nice value. */
+/* Returns the current thread's nice value. */                                                 ////////// not completed yet though.. ////////////////////
 int
 thread_get_nice (void) 
 {
@@ -445,18 +473,22 @@ update_recent_cpu(struct thread *t){
 );
 }
 void
-update_priority(void)
+update_priority(struct thread *t) 
 {
-  struct thread *curr = thread_current();
-  if (curr == idle_thread) return;
-  curr->priority = PRI_MAX - 
+  if (t == idle_thread) 
+    return;
+
+  // Calculate raw priority (may be out of bounds)
+  int new_priority = PRI_MAX - 
     Convert_x_to_integer_round_zero(
-        Divide_x_by_y(
-            curr->recent_cpu,
-            Convert_n_to_fixed_point(4)
-        )
+      Divide_x_by_y(t->recent_cpu, Convert_n_to_fixed_point(4))
     ) - 
-    (curr->nice * 2);
+    (t->nice * 2);
+
+  // Clamp to valid range
+  t->priority = new_priority < PRI_MIN ? PRI_MIN : 
+                new_priority > PRI_MAX ? PRI_MAX : 
+                new_priority;
 }
 ////////////////////////////////////////////////////
 
@@ -547,6 +579,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+if(thread_mlfqs) {
+		t->nice = 0;                                       /////////////////////////////////////////////////////////////////////////
+		t->recent_cpu = Convert_n_to_fixed_point(0);
+	}
+  
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
