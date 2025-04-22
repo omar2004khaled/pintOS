@@ -44,7 +44,7 @@
 
 
 int maxPLock (struct list *list);
-
+static struct thread *maxPThread (struct list *list);
 void
 sema_init (struct semaphore *sema, unsigned value) 
 {
@@ -404,4 +404,28 @@ int maxPLock (struct list *list){
     
     return maxP; 
   }
+}
+static struct thread *maxPThread (struct list *list){
+  int maxP=0;
+  struct list_elem *current=&list->head;
+  struct thread *result,*x;
+  if (list_empty (list))
+    return NULL;
+  else{
+    result=list_entry (current, struct thread, elem);
+    maxP=result->effective_priority;
+    do
+    {
+      current =current->next;
+      x=list_entry (current, struct thread, elem);
+      if (x->effective_priority>=maxP)
+      {
+        result=x;
+        maxP=x->effective_priority;
+      }
+      
+    } while (current->next !=NULL);
+    
+    return result; 
+}
 }
