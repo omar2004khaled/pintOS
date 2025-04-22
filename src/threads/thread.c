@@ -112,7 +112,6 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
-
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
@@ -376,7 +375,7 @@ thread_set_priority (int new_priority)
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  return thread_current ()->effective_priority;
 }
 
 
@@ -572,19 +571,20 @@ init_thread (struct thread *t, const char *name, int priority)
   ASSERT (t != NULL);
   ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
   ASSERT (name != NULL);
-
+  
   memset (t, 0, sizeof *t);
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t ->effective_priority=priority;
   t->magic = THREAD_MAGIC;
 if(thread_mlfqs) {
 		t->nice = 0;                                       /////////////////////////////////////////////////////////////////////////
 		t->recent_cpu = Convert_n_to_fixed_point(0);
 	}
   
-
+  list_init (&t->locks);        //all locks holded by this thread
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
@@ -619,7 +619,11 @@ next_thread_to_run (void)
   //priority return the thread with highest priority
   // In donation, in lock, unlock, semaup, semadown
   // list_sort
+  if (list_empty (&ready_list))
+    return idle_thread;
+  else
 
+  return maxPThread (&ready_list);
  }
   if (list_empty (&ready_list))
     return idle_thread;
@@ -717,8 +721,31 @@ allocate_tid (void)
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 
-
-
+/*return the max p thread in a list*/
+static struct thread *maxPThread (struct list *list){
+    int maxP=0;
+    struct list_elem *current=&list->head;
+    struct thread *result,*x;
+    if (list_empty (list))
+      return idle_thread;
+    else{
+      result=list_entry (current, struct thread, elem);
+      maxP=result->effective_priority;
+      do
+      {
+        current =current->next;
+        x=list_entry (current, struct thread, elem);
+        if (x->effective_priority>=maxP)
+        {
+          result=x;
+          maxP=x->effective_priority;
+        }
+        
+      } while (current->next !=NULL);
+      
+      return result; 
+  }
+}
 
 
 

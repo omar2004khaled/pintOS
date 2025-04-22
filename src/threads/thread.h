@@ -117,7 +117,7 @@ struct thread
     
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-
+    struct list_elem locks;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -172,5 +172,5 @@ update_recent_cpu(struct thread *t);
 void
 update_priority(struct thread *t);
 int thread_get_load_avg (void);
-
+static struct thread *maxPThread (struct list *list);
 #endif /* threads/thread.h */

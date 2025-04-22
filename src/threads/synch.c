@@ -41,6 +41,10 @@
 
    - up or "V": increment the value (and wake up one waiting
      thread, if any). */
+
+
+int maxPLock (struct list *list);
+
 void
 sema_init (struct semaphore *sema, unsigned value) 
 {
@@ -105,9 +109,6 @@ sema_try_down (struct semaphore *sema)
    and wakes up one thread of those waiting for SEMA, if any.
 
    This function may be called from an interrupt handler. */
-
-////////////////// FIX ME Task 2 //////////////////////////
-  
 void
 sema_up (struct semaphore *sema) 
 {
@@ -179,7 +180,7 @@ void
 lock_init (struct lock *lock)
 {
   ASSERT (lock != NULL);
-
+  lock->priority=0;
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
 }
@@ -198,8 +199,24 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
-
+  if(lock->priority<thread_get_priority()) {
+    lock->priority=thread_get_priority();
+    if(lock->priority>lock->holder->effective_priority)lock->holder->effective_priority=lock->priority;
+  }
   sema_down (&lock->semaphore);
+  if(lock->priority==thread_get_priority()){
+    if (list_empty (&((lock->semaphore).waiters)))
+    {
+      lock->priority=0;
+    }
+    else{
+      struct thread *maxWaiter= maxPThread(&((lock->semaphore).waiters));
+      lock->priority=maxWaiter->priority;
+    }
+    
+  }
+  list_push_back(&thread_current ()->locks,&lock->elem);
+  if (lock->priority>thread_current()->effective_priority)  thread_current()->priority=lock->priority;
   lock->holder = thread_current ();
 }
 
@@ -228,7 +245,6 @@ lock_try_acquire (struct lock *lock)
    An interrupt handler cannot acquire a lock, so it does not
    make sense to try to release a lock within an interrupt
    handler. */
-////////////////// FIX ME Task 2 //////////////////////////
 void
 lock_release (struct lock *lock) 
 {
@@ -236,6 +252,27 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   lock->holder = NULL;
+  //remove lock from locks list in thread
+  struct list_elem *current=&thread_current()->locks;
+  while (current!=NULL)
+  {
+    if(list_entry (current, struct lock, elem)==lock){
+      list_remove(current);
+      break;
+    }
+    current=current->next;
+  }
+   
+
+
+  if (lock->priority==thread_current()->effective_priority)
+  {
+    thread_current()->effective_priority=maxPLock(&thread_current()->locks);
+    if(thread_current()->priority>thread_current()->effective_priority) {
+          thread_current()->effective_priority=thread_current()->priority;
+    }
+  }
+  
   sema_up (&lock->semaphore);
 }
 
@@ -339,4 +376,29 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+int maxPLock (struct list *list){
+  int maxP=0;
+  struct list_elem *current=&list->head;
+  struct lock *result,*x;
+  if (list_empty (list))
+    return 0;
+  else{
+    result=list_entry (current, struct lock,elem);
+    maxP=result->priority;
+    do
+    {
+      current =current->next;
+      x=list_entry (current, struct lock, elem);
+      if (x->priority>=maxP)
+      {
+        result=x;
+        maxP=x->priority;
+      }
+      
+    } while (current->next !=NULL);
+    
+    return maxP; 
+}
 }
