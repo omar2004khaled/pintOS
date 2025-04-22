@@ -199,12 +199,15 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
+  // give priority to the lock
   if(lock->priority<thread_get_priority()) {
     lock->priority=thread_get_priority();
-    if(lock->priority>lock->holder->effective_priority)lock->holder->effective_priority=lock->priority;
+    // lock->holder could be null if the lock is not held by any thread?
+    if(lock->holder != NULL && lock->priority > lock->holder->effective_priority)
+      lock->holder->effective_priority = lock->priority;
   }
   sema_down (&lock->semaphore);
-  if(lock->priority==thread_get_priority()){
+  if(lock->priority == thread_get_priority()){
     if (list_empty (&((lock->semaphore).waiters)))
     {
       lock->priority=0;
@@ -400,5 +403,5 @@ int maxPLock (struct list *list){
     } while (current->next !=NULL);
     
     return maxP; 
-}
+  }
 }
