@@ -129,6 +129,7 @@ thread_start (void)
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
+  
   thread_create ("idle", PRI_MIN, idle, &idle_started);
 
   /* Start preemptive thread scheduling. */
@@ -187,15 +188,12 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux) 
 {
-  printf("enered\n");
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
   struct switch_threads_frame *sf;
   tid_t tid;
-  printf("nothing special\n");
   ASSERT (function != NULL);
-  printf("function != null\n");
   /* Allocate thread. */
   t = palloc_get_page (PAL_ZERO);
   if (t == NULL)
@@ -205,16 +203,12 @@ thread_create (const char *name, int priority,
   // Each child thread should inherit the parent's nice, and recent_cpu, hence parent creates priority for child
   /* Initialize thread. */
   init_thread (t, name, priority);
-  printf("heeeeeeeeeey %d\n",t->priority);
   tid = t->tid = allocate_tid ();
-  printf("done0\n");
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
-  printf("get frame\n");
   kf->eip = NULL;
   kf->function = function;
   kf->aux = aux;
-  printf("done2\n");
   /* Stack frame for switch_entry(). */
   ef = alloc_frame (t, sizeof *ef);
   ef->eip = (void (*) (void)) kernel_thread;
@@ -223,14 +217,12 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
-  printf("done3\n");
   if (thread_mlfqs) {
     t->nice = thread_current()->nice;
     t->recent_cpu = thread_current()->recent_cpu;          /////////////////////
     //  t->nice = thread_current() ? thread_current()->nice : 0;
    //t->recent_cpu = thread_current() ? thread_current()->recent_cpu : 0;
   }
-  printf("created\n");
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -245,7 +237,7 @@ thread_create (const char *name, int priority,
    primitives in synch.h. */
 void
 thread_block (void) 
-{
+{ 
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
@@ -569,7 +561,6 @@ is_thread (struct thread *t)
 static void
 init_thread (struct thread *t, const char *name, int priority)
 {
-  printf("intialize\n");
   enum intr_level old_level;
 
   ASSERT (t != NULL);
@@ -592,7 +583,6 @@ if(thread_mlfqs) {
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
-  printf("done1\n");
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -629,10 +619,6 @@ next_thread_to_run (void)
     return idle_thread;
   }
   else{
-    if (maxPThread (&ready_list)==NULL)
-    {
-      printf("fuck\n");
-    }
   
   return maxPThread (&ready_list);
  }
@@ -734,29 +720,22 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 
 /*return the max p thread in a list*/
-static struct thread *maxPThread (struct list *list){
-    int maxP=0;
-    struct list_elem *current=&list->head;
-    struct thread *result,*x;
-    if (list_empty (list))
-      return idle_thread;
-    else{
-      result=list_entry (current, struct thread, elem);
-      maxP=result->effective_priority;
-      do
-      {
-        current =current->next;
-        x=list_entry (current, struct thread, elem);
-        if (x->effective_priority>=maxP)
-        {
-          result=x;
-          maxP=x->effective_priority;
-        }
-        
-      } while (current->next !=NULL);
-      
-      return result; 
+static struct thread *maxPThread(struct list *list) {
+  if (list_empty(list))
+    return NULL;
+
+  struct thread *max_thread = NULL;
+  int max_priority = -1;
+
+  struct list_elem *e;
+  for (e = list_begin(list); e != list_end(list); e = list_next(e)) {
+    struct thread *t = list_entry(e, struct thread, elem);
+    if (t->effective_priority > max_priority) {
+      max_priority = t->effective_priority;
+      max_thread = t;
+    }
   }
+  return max_thread;
 }
 
 
