@@ -16,7 +16,7 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
-
+static struct thread *maxPThread (struct list *list);
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -187,14 +187,15 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux) 
 {
+  printf("enered\n");
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
   struct switch_threads_frame *sf;
   tid_t tid;
-
+  printf("nothing special\n");
   ASSERT (function != NULL);
-
+  printf("function != null\n");
   /* Allocate thread. */
   t = palloc_get_page (PAL_ZERO);
   if (t == NULL)
@@ -204,14 +205,16 @@ thread_create (const char *name, int priority,
   // Each child thread should inherit the parent's nice, and recent_cpu, hence parent creates priority for child
   /* Initialize thread. */
   init_thread (t, name, priority);
+  printf("heeeeeeeeeey %d\n",t->priority);
   tid = t->tid = allocate_tid ();
-
+  printf("done0\n");
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
+  printf("get frame\n");
   kf->eip = NULL;
   kf->function = function;
   kf->aux = aux;
-
+  printf("done2\n");
   /* Stack frame for switch_entry(). */
   ef = alloc_frame (t, sizeof *ef);
   ef->eip = (void (*) (void)) kernel_thread;
@@ -220,14 +223,14 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
-
+  printf("done3\n");
   if (thread_mlfqs) {
     t->nice = thread_current()->nice;
     t->recent_cpu = thread_current()->recent_cpu;          /////////////////////
     //  t->nice = thread_current() ? thread_current()->nice : 0;
    //t->recent_cpu = thread_current() ? thread_current()->recent_cpu : 0;
   }
-
+  printf("created\n");
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -566,6 +569,7 @@ is_thread (struct thread *t)
 static void
 init_thread (struct thread *t, const char *name, int priority)
 {
+  printf("intialize\n");
   enum intr_level old_level;
 
   ASSERT (t != NULL);
@@ -588,6 +592,7 @@ if(thread_mlfqs) {
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
+  printf("done1\n");
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -611,7 +616,8 @@ alloc_frame (struct thread *t, size_t size)
    idle_thread. */
 static struct thread *
 next_thread_to_run (void) 
-{ if(thread_mlfqs){
+{ 
+  if(thread_mlfqs){
  //advanced
  }
  else{
@@ -619,12 +625,18 @@ next_thread_to_run (void)
   //priority return the thread with highest priority
   // In donation, in lock, unlock, semaup, semadown
   // list_sort
-  if (list_empty (&ready_list))
+  if (list_empty (&ready_list)){
     return idle_thread;
-  else
-
+  }
+  else{
+    if (maxPThread (&ready_list)==NULL)
+    {
+      printf("fuck\n");
+    }
+  
   return maxPThread (&ready_list);
  }
+}
   if (list_empty (&ready_list))
     return idle_thread;
   else
