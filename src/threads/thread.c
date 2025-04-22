@@ -740,16 +740,18 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 /*return the max p thread in a list*/
 static struct thread *maxPThread (struct list *list){
     int maxP=0;
-    struct list_elem *current=&list->head;
+    // struct list_elem *current=&list->head;
+    struct list_elem *current = list_begin (list);
     struct thread *result,*x;
     if (list_empty (list))
       return idle_thread;
+
     else{
       result=list_entry (current, struct thread, elem);
       maxP=result->effective_priority;
       do
       {
-        current =current->next;
+        current = list_next (current);
         x=list_entry (current, struct thread, elem);
         if (x->effective_priority>=maxP)
         {
@@ -757,7 +759,7 @@ static struct thread *maxPThread (struct list *list){
           maxP=x->effective_priority;
         }
         
-      } while (current->next !=NULL);
+      } while (current != list_end (list));
       
       return result; 
   }
