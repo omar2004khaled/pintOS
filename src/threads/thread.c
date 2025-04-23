@@ -590,7 +590,7 @@ init_thread (struct thread *t, const char *name, int priority)
 		t->recent_cpu = Convert_n_to_fixed_point(0);
 	}
   
-  list_init (&t->locks);        //all locks holded by this thread
+  list_init (&t->locks);        //all locks held by this thread
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
