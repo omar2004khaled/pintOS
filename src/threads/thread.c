@@ -589,7 +589,8 @@ init_thread (struct thread *t, const char *name, int priority)
 		t->nice = 0;                                       /////////////////////////////////////////////////////////////////////////
 		t->recent_cpu = Convert_n_to_fixed_point(0);
 	}
-  
+  t->waited=NULL;
+  t->waiting=false;
   list_init (&t->locks);        //all locks held by this thread
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

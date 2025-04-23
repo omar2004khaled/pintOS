@@ -216,10 +216,13 @@ lock_acquire (struct lock *lock)
   if(lock->priority<thread_get_priority()) {
     lock->priority=thread_get_priority();
     if(lock->holder!=NULL&&lock->priority>lock->holder->effective_priority){
-      lock->holder->effective_priority=lock->priority;
+      //lock->holder->effective_priority=lock->priority;
+      donate(lock->holder,lock->priority);
       // printf("lock_acquire____-: %d\n", lock->holder->effective_priority);
     }
     }
+    thread_current()->waiting=true;
+    thread_current()->waited=lock;
   sema_down (&lock->semaphore);
   if(lock->priority == thread_get_priority()){
     if (list_empty (&((lock->semaphore).waiters)))
@@ -241,6 +244,8 @@ lock_acquire (struct lock *lock)
   // Priorities changed so we resort the ready list
   sort_ready_list();
   lock->holder = thread_current ();
+  thread_current()->waiting=false;
+  thread_current()->waited=NULL;
 }
 
 
@@ -461,4 +466,15 @@ bool compare_sema(struct list_elem *l1, struct list_elem *l2, void *aux)
     return true;
   
   return false;
+}
+void donate(struct thread *t,int p){
+    if(p>t->effective_priority){
+      t->effective_priority=p;
+      if(t->waiting){
+        if(t->waited->priority<p){
+          t->waited->priority=p;
+          if(t->waited->holder!=NULL) donate(t->waited->holder,p);
+        }
+      }
+    }
 }
