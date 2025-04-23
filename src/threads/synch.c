@@ -44,6 +44,7 @@
 
 
 int maxPLock (struct list *list);
+bool compare_priority_waiters(const struct list_elem *a, const struct list_elem *b, void *aux);
 
 static struct thread *maxPThread (struct list *list);
 
@@ -74,7 +75,8 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      // list_push_back (&sema->waiters, &thread_current ()->elem);
+      list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority_waiters, 0);
       thread_block ();
     }
   sema->value--;
@@ -120,9 +122,11 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters)) 
+  if (!list_empty (&sema->waiters)){
+    list_sort(&sema->waiters, compare_priority_waiters, 0);
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
+  }                              
   sema->value++;
   intr_set_level (old_level);
 }
@@ -205,8 +209,11 @@ lock_acquire (struct lock *lock)
   // give priority to the lock
   if(lock->priority<thread_get_priority()) {
     lock->priority=thread_get_priority();
-    if(lock->holder!=NULL&&lock->priority>lock->holder->effective_priority)lock->holder->effective_priority=lock->priority;
-  }
+    if(lock->holder!=NULL&&lock->priority>lock->holder->effective_priority){
+      lock->holder->effective_priority=lock->priority;
+      // printf("lock_acquire____-: %d\n", lock->holder->effective_priority);
+    }
+    }
   sema_down (&lock->semaphore);
   if(lock->priority == thread_get_priority()){
     if (list_empty (&((lock->semaphore).waiters)))
@@ -280,10 +287,12 @@ lock_release (struct lock *lock)
     if(thread_current()->priority>thread_current()->effective_priority) {
           thread_current()->effective_priority=thread_current()->priority;
     }
-    sort_ready_list();
+    
   }
   
   sema_up (&lock->semaphore);
+  sort_ready_list();
+  thread_yield();
 }
 
 /* Returns true if the current thread holds LOCK, false
@@ -404,7 +413,6 @@ int maxPLock(struct list *list) {
 }
 
 static struct thread *maxPThread(struct list *list) {
-  printf("Size of list: %d\n", list_size(list));
   if (list_empty(list))
     return NULL;
 
@@ -420,4 +428,10 @@ static struct thread *maxPThread(struct list *list) {
     }
   }
   return max_thread;
+}
+
+bool compare_priority_waiters(const struct list_elem *a, const struct list_elem *b, void *aux) {
+  struct thread *thread_a = list_entry(a, struct thread, elem);
+  struct thread *thread_b = list_entry(b, struct thread, elem);
+  return thread_a->effective_priority > thread_b->effective_priority;
 }

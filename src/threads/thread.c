@@ -370,7 +370,11 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  if (thread_current()->priority == thread_current()->effective_priority) thread_current ()->effective_priority = new_priority;
   thread_current ()->priority = new_priority;
+  sort_ready_list();
+  thread_yield();
+  // printf("thread_set_priority %d\n", thread_current()->priority);
 }
 
 /* Returns the current thread's priority. */
