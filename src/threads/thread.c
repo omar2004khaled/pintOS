@@ -16,7 +16,8 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
-static struct thread *maxPThread (struct list *list);
+// static struct thread *maxPThread (struct list *list);
+bool compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux); 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -108,15 +109,13 @@ void
 thread_init (void) 
 {
   ASSERT (intr_get_level () == INTR_OFF);
-  printf("thread_init\n");
+
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
-  printf("Before init_thread\n");
   init_thread (initial_thread, "main", PRI_DEFAULT);
-  printf("After init_thread\n");
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
   if (thread_mlfqs){load_avg = Convert_n_to_fixed_point(0);  }                           /////////////////////////////////////////////
@@ -131,6 +130,7 @@ thread_start (void)
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
+  
   thread_create ("idle", PRI_MIN, idle, &idle_started);
 
   /* Start preemptive thread scheduling. */
@@ -189,15 +189,12 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux) 
 {
-  printf("enered\n");
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
   struct switch_threads_frame *sf;
   tid_t tid;
-  printf("nothing special\n");
   ASSERT (function != NULL);
-  printf("function != null\n");
   /* Allocate thread. */
   t = palloc_get_page (PAL_ZERO);
   if (t == NULL)
@@ -207,16 +204,12 @@ thread_create (const char *name, int priority,
   // Each child thread should inherit the parent's nice, and recent_cpu, hence parent creates priority for child
   /* Initialize thread. */
   init_thread (t, name, priority);
-  printf("heeeeeeeeeey %d\n",t->priority);
   tid = t->tid = allocate_tid ();
-  printf("done0\n");
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
-  printf("get frame\n");
   kf->eip = NULL;
   kf->function = function;
   kf->aux = aux;
-  printf("done2\n");
   /* Stack frame for switch_entry(). */
   ef = alloc_frame (t, sizeof *ef);
   ef->eip = (void (*) (void)) kernel_thread;
@@ -225,16 +218,16 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
-  printf("done3\n");
   if (thread_mlfqs) {
     t->nice = thread_current()->nice;
     t->recent_cpu = thread_current()->recent_cpu;          /////////////////////
     //  t->nice = thread_current() ? thread_current()->nice : 0;
    //t->recent_cpu = thread_current() ? thread_current()->recent_cpu : 0;
-  }
-  printf("created\n");
+  } 
+
   /* Add to run queue. */
   thread_unblock (t);
+  thread_yield(); // To see if new thread has higher priority than current thread
 
   return tid;
 }
@@ -247,7 +240,7 @@ thread_create (const char *name, int priority,
    primitives in synch.h. */
 void
 thread_block (void) 
-{
+{ 
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
@@ -272,7 +265,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  // list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, compare_priority, 0);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -347,7 +341,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    // list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, compare_priority, 0);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -573,7 +568,6 @@ is_thread (struct thread *t)
 static void
 init_thread (struct thread *t, const char *name, int priority)
 {
-  printf("intialize\n");
   enum intr_level old_level;
 
   ASSERT (t != NULL);
@@ -587,7 +581,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t ->effective_priority=priority;
   t->magic = THREAD_MAGIC;
-if(thread_mlfqs) {
+  if(thread_mlfqs) {
 		t->nice = 0;                                       /////////////////////////////////////////////////////////////////////////
 		t->recent_cpu = Convert_n_to_fixed_point(0);
 	}
@@ -596,7 +590,6 @@ if(thread_mlfqs) {
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
-  printf("done1\n");
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -622,29 +615,27 @@ static struct thread *
 next_thread_to_run (void) 
 { 
   if(thread_mlfqs){
- //advanced
- }
- else{
+    //advanced
+  }
+
   ////////////////// Task 2 //////////////////////////
   //priority return the thread with highest priority
   // In donation, in lock, unlock, semaup, semadown
   // list_sort
-  if (list_empty (&ready_list)){
-    return idle_thread;
-  }
-  else{
-    if (maxPThread (&ready_list)==NULL)
-    {
-      printf("fuck\n");
-    }
+  // if (list_empty (&ready_list)){
+  //   return idle_thread;
+  // }
+  // else{
   
-  return maxPThread (&ready_list);
- }
-}
+  //   return maxPThread (&ready_list);
+  // }
+
   if (list_empty (&ready_list))
     return idle_thread;
   else
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  
+  
 }
 
 /* Completes a thread switch by activating the new thread's page
@@ -738,36 +729,35 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 
 /*return the max p thread in a list*/
-static struct thread *maxPThread (struct list *list){
-    int maxP=0;
-    // struct list_elem *current=&list->head;
-    struct list_elem *current = list_begin (list);
-    struct thread *result,*x;
-    if (list_empty (list))
-      return idle_thread;
+// static struct thread *maxPThread(struct list *list) {
+//   if (list_empty(list))
+//     return NULL;
 
-    else{
-      result=list_entry (current, struct thread, elem);
-      maxP=result->effective_priority;
-      do
-      {
-        current = list_next (current);
-        x=list_entry (current, struct thread, elem);
-        if (x->effective_priority>=maxP)
-        {
-          result=x;
-          maxP=x->effective_priority;
-        }
-        
-      } while (current != list_end (list));
-      
-      return result; 
-  }
+//   struct thread *max_thread = NULL;
+//   int max_priority = -1;
+
+//   struct list_elem *e;
+//   for (e = list_begin(list); e != list_end(list); e = list_next(e)) {
+//     struct thread *t = list_entry(e, struct thread, elem);
+//     if (t->effective_priority > max_priority) {
+//       max_priority = t->effective_priority;
+//       max_thread = t;
+//     }
+//   }
+//   return max_thread;
+// }
+
+bool compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux) {
+  struct thread *thread_a = list_entry(a, struct thread, elem);
+  struct thread *thread_b = list_entry(b, struct thread, elem);
+  return thread_a->effective_priority > thread_b->effective_priority ;
 }
 
 
-
-
+// So it can be seen/used in synch.c
+void sort_ready_list() {
+  list_sort(&ready_list, compare_priority, NULL);
+}
 
 
 

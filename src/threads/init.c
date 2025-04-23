@@ -114,7 +114,6 @@ main (void)
   exception_init ();
   syscall_init ();
 #endif
-
   /* Start thread scheduler and enable interrupts. */
   thread_start ();
   serial_init_queue ();

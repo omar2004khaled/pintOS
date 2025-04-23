@@ -173,4 +173,6 @@ void
 update_priority(struct thread *t);
 int thread_get_load_avg (void);
 
+void sort_ready_list();
+ 
 #endif /* threads/thread.h */

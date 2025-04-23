@@ -44,7 +44,9 @@
 
 
 int maxPLock (struct list *list);
+
 static struct thread *maxPThread (struct list *list);
+
 void
 sema_init (struct semaphore *sema, unsigned value) 
 {
@@ -104,6 +106,7 @@ sema_try_down (struct semaphore *sema)
 
   return success;
 }
+
 
 /* Up or "V" operation on a semaphore.  Increments SEMA's value
    and wakes up one thread of those waiting for SEMA, if any.
@@ -202,9 +205,7 @@ lock_acquire (struct lock *lock)
   // give priority to the lock
   if(lock->priority<thread_get_priority()) {
     lock->priority=thread_get_priority();
-    // lock->holder could be null if the lock is not held by any thread?
-    if(lock->holder != NULL && lock->priority > lock->holder->effective_priority)
-      lock->holder->effective_priority = lock->priority;
+    if(lock->holder!=NULL&&lock->priority>lock->holder->effective_priority)lock->holder->effective_priority=lock->priority;
   }
   sema_down (&lock->semaphore);
   if(lock->priority == thread_get_priority()){
@@ -220,8 +221,11 @@ lock_acquire (struct lock *lock)
   }
   list_push_back(&thread_current ()->locks,&lock->elem);
   if (lock->priority>thread_current()->effective_priority)  thread_current()->priority=lock->priority;
+  // Priorities changed so we resort the ready list
+  sort_ready_list();
   lock->holder = thread_current ();
 }
+
 
 /* Tries to acquires LOCK and returns true if successful or false
    on failure.  The lock must not already be held by the current
@@ -256,14 +260,16 @@ lock_release (struct lock *lock)
 
   lock->holder = NULL;
   //remove lock from locks list in thread
-  struct list_elem *current=&thread_current()->locks;
-  while (current!=NULL)
+  // struct list_elem *current=&(&thread_current()->locks)->head;
+  struct list_elem *current = list_begin(&thread_current()->locks);
+  
+  while (current != list_end(&thread_current()->locks))
   {
     if(list_entry (current, struct lock, elem)==lock){
       list_remove(current);
       break;
     }
-    current=current->next;
+    current = list_next(current);
   }
    
 
@@ -274,6 +280,7 @@ lock_release (struct lock *lock)
     if(thread_current()->priority>thread_current()->effective_priority) {
           thread_current()->effective_priority=thread_current()->priority;
     }
+    sort_ready_list();
   }
   
   sema_up (&lock->semaphore);
@@ -381,51 +388,36 @@ cond_broadcast (struct condition *cond, struct lock *lock)
     cond_signal (cond, lock);
 }
 
-int maxPLock (struct list *list){
-  int maxP=0;
-  struct list_elem *current=&list->head;
-  struct lock *result,*x;
-  if (list_empty (list))
+int maxPLock(struct list *list) {
+  if (list_empty(list))
     return 0;
-  else{
-    result=list_entry (current, struct lock,elem);
-    maxP=result->priority;
-    do
-    {
-      current =current->next;
-      x=list_entry (current, struct lock, elem);
-      if (x->priority>=maxP)
-      {
-        result=x;
-        maxP=x->priority;
-      }
-      
-    } while (current->next !=NULL);
-    
-    return maxP; 
+
+  int maxP = 0;
+  struct list_elem *e;
+  for (e = list_begin(list); e != list_end(list); e = list_next(e)) {
+    struct lock *l = list_entry(e, struct lock, elem);
+    if (l->priority > maxP) {
+      maxP = l->priority;
+    }
   }
+  return maxP;
 }
-static struct thread *maxPThread (struct list *list){
-  int maxP=0;
-  struct list_elem *current=&list->head;
-  struct thread *result,*x;
-  if (list_empty (list))
+
+static struct thread *maxPThread(struct list *list) {
+  printf("Size of list: %d\n", list_size(list));
+  if (list_empty(list))
     return NULL;
-  else{
-    result=list_entry (current, struct thread, elem);
-    maxP=result->effective_priority;
-    do
-    {
-      current =current->next;
-      x=list_entry (current, struct thread, elem);
-      if (x->effective_priority>=maxP)
-      {
-        result=x;
-        maxP=x->effective_priority;
-      }
-      
-    } while (current->next !=NULL);
-    
-    return result; 
-}
+
+  struct thread *max_thread = NULL;
+  int max_priority = -1;
+
+  struct list_elem *e;
+  for (e = list_begin(list); e != list_end(list); e = list_next(e)) {
+    struct thread *t = list_entry(e, struct thread, elem);
+    if (t->effective_priority > max_priority) {
+      max_priority = t->effective_priority;
+      max_thread = t;
+    }
+  }
+  return max_thread;
 }

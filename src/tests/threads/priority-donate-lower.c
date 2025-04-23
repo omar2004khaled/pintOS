@@ -16,17 +16,12 @@ void
 test_priority_donate_lower (void) 
 {
   struct lock lock;
-  printf("1");   
   /* This test does not work with the MLFQS. */
   ASSERT (!thread_mlfqs);
-  printf("2");
   /* Make sure our priority is the default. */
   ASSERT (thread_get_priority () == PRI_DEFAULT);
-  printf("3\n");
   lock_init (&lock);
-  printf("lock init done\n");
   lock_acquire (&lock);
-  printf("lock acquire done\n");
   thread_create ("acquire", PRI_DEFAULT + 10, acquire_thread_func, &lock);
   msg ("Main thread should have priority %d.  Actual priority: %d.",
        PRI_DEFAULT + 10, thread_get_priority ());
