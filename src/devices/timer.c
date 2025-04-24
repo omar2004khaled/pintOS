@@ -211,7 +211,7 @@ if (thread_mlfqs){
   }
   if(ticks %4==0){
 
-    thread_foreach(update_priority,NULL);
+    calculate_advanced_priority_for_all();
     
     }
 }

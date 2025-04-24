@@ -176,5 +176,5 @@ update_priority(struct thread *t);
 int thread_get_load_avg (void);
 
 void sort_ready_list();
- 
+void calculate_advanced_priority_for_all(void); 
 #endif /* threads/thread.h */
