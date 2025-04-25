@@ -93,8 +93,7 @@ update_recent_cpu(struct thread *t);
 void
 update_priority(struct thread *t);
 int thread_get_load_avg (void);
-static bool priority_more(const struct list_elem *a,
-  const struct list_elem *b, void *aux UNUSED);
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -221,7 +220,6 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
-  thread_unblock (t);
   thread_unblock (t);
   if (thread_mlfqs) {
     //t->nice = thread_current()->nice;
@@ -434,7 +432,7 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  ASSERT (nice >= -20 && nice <= 20);
+
   ASSERT (nice >= -20 && nice <= 20);
   thread_current ()->nice = nice;
   struct thread *t = thread_current();
@@ -460,26 +458,7 @@ thread_set_nice (int nice UNUSED)
           thread_yield();
         }
     }
-  if (t != idle_thread)
-    {
-      if (t->status == THREAD_READY)
-        {
-          enum intr_level old_level;
-          old_level = intr_disable ();
-          list_remove (&t->elem);
-          list_insert_ordered (&ready_list, &t->elem, priority_more, NULL);
-          intr_set_level (old_level);
-        }
-      else if (t->status == THREAD_RUNNING &&
-               list_entry (list_begin (&ready_list),
-                           struct thread,
-                           elem
-                           )->priority > t->priority
-               )
-        {
-          thread_yield();
-        }
-    }
+
 }
 
 /* Returns the current thread's nice value. */                                                 ////////// not completed yet though.. ////////////////////
