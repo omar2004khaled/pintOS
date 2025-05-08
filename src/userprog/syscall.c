@@ -6,10 +6,20 @@
 
 static void syscall_handler (struct intr_frame *);
 
+/* prototypes */
+static void syscall_halt(void);
+/*
+static void syscall_exit(int status);
+//and the rest of the system calls
+*/
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+}
+static void syscall_halt(void) 
+{
+  shutdown_power_off();
 }
 
 static void
@@ -21,7 +31,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   
  switch (syscall_number) {
    case SYS_HALT:
-     // Handle halt system call
+     syscall_halt();
      break;
      
    case SYS_EXIT:
