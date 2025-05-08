@@ -8,6 +8,7 @@ static void syscall_handler (struct intr_frame *);
 
 /* prototypes */
 static void syscall_halt(void);
+static int syscall_wait(tid_t tid);
 /*
 static void syscall_exit(int status);
 //and the rest of the system calls
@@ -20,6 +21,10 @@ syscall_init (void)
 static void syscall_halt(void) 
 {
   shutdown_power_off();
+}
+static int syscall_wait(tid_t tid) 
+{
+  return process_wait(tid);
 }
 
 static void
@@ -43,7 +48,9 @@ syscall_handler (struct intr_frame *f UNUSED)
      break;
      
    case SYS_WAIT:
-     // Handle wait system call
+   tid_t tid = *(tid_t *)(f->esp + 4);
+   f->eax = syscall_wait(tid);
+   
      break;
      
    case SYS_CREATE:
