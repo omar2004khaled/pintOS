@@ -1,5 +1,7 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
+#include "threads/synch.h"
+
 
 #include <debug.h>
 #include <list.h>
@@ -92,6 +94,15 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    ////////////////////////
+    struct list child_list;        // List of child processes
+    struct list_elem child_elem;   // For parent's child_list
+    struct thread *parent;         // Parent process
+    int child_exit_status;              // Child's exit status
+    struct semaphore parent_wait;       // Semaphore for child process  → Used only for exit synchronization (process_wait and process_exit). 
+    struct semaphore wait_for_load;      //→ Used only for initialization (process_execute and start_process).
+                                        //Ensures the parent waits for the child to initialize before continuing 
+    ////////////////////////
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

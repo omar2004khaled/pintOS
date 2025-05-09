@@ -475,6 +475,13 @@ init_thread (struct thread *t, const char *name, int priority)
 	old_level = intr_disable ();
 	list_push_back (&all_list, &t->allelem);
 	intr_set_level (old_level);
+	///////////////////////////////////////////////////
+    list_init(&t->child_list);
+    t->parent = NULL;                // Set later in process_execute if needed
+    t->child_exit_status = -1;       // Default invalid status
+    sema_init(&t->parent_wait, 0);   // Parent waits for child exit
+    sema_init(&t->wait_for_load, 0); // Parent waits for child load
+	///////////////////////////////////////////////////
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

@@ -4,15 +4,17 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "userprog/process.h"
-
+#include "threads/vaddr.h"
 static void syscall_handler (struct intr_frame *);
 
 /* prototypes */
 static void syscall_halt(void);
 static int syscall_wait(tid_t tid);
 /*
+
 static void syscall_exit(int status);
-//and the rest of the system calls
+//and the rest of the system calls .....
+
 */
 void
 syscall_init (void) 
@@ -27,14 +29,23 @@ static int syscall_wait(tid_t tid)
 {
   return process_wait(tid);
 }
+static void check_address(void *addr)
+{
+  if (addr == NULL || !is_user_vaddr(addr))              //found in threads/vaddr.h
+  { 
+    thread_exit();   //terminate if invalid
+  }
+}
 
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   printf ("system call!\n"); 
  // Get the system call number from the stack
+ 
  int syscall_number = *(int *)f->esp;
-  
+ check_address(f->esp);
+
  switch (syscall_number) {
    case SYS_HALT:
      syscall_halt();
