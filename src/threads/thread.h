@@ -102,6 +102,8 @@ struct thread
     struct semaphore parent_wait;       // Semaphore for child process  → Used only for exit synchronization (process_wait and process_exit). 
     struct semaphore wait_for_load;      //→ Used only for initialization (process_execute and start_process).
                                         //Ensures the parent waits for the child to initialize before continuing 
+     tid_t waitingForChild;
+     bool childCreation;                                   
     ////////////////////////
 
 #ifdef USERPROG

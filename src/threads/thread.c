@@ -479,6 +479,9 @@ init_thread (struct thread *t, const char *name, int priority)
     list_init(&t->child_list);
     t->parent = NULL;                // Set later in process_execute if needed
     t->child_exit_status = -1;       // Default invalid status
+    t->waitingForChild = -1;        // Default invalid waiting child
+    t->childCreation = false;       // Default not waiting for child creation
+    t->parent= NULL;               // Default no parent
     sema_init(&t->parent_wait, 0);   // Parent waits for child exit
     sema_init(&t->wait_for_load, 0); // Parent waits for child load
 	///////////////////////////////////////////////////
