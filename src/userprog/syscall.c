@@ -62,10 +62,11 @@ syscall_handler (struct intr_frame *f UNUSED)
      break;
      
    case SYS_EXEC:
+   {
       int status = *(int *)(f->esp + 4);
       syscall_exit(status);
       break;
-     
+   } 
      case SYS_WAIT: {
       tid_t tid = *(tid_t *)(f->esp + 4);
       f->eax = process_wait(tid);
