@@ -3,6 +3,7 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -47,11 +48,12 @@ syscall_handler (struct intr_frame *f UNUSED)
      // Handle exec system call
      break;
      
-   case SYS_WAIT:
-   tid_t tid = *(tid_t *)(f->esp + 4);
-   f->eax = syscall_wait(tid);
-   
-     break;
+     case SYS_WAIT: {
+      tid_t tid = *(tid_t *)(f->esp + 4);
+      f->eax = process_wait(tid);
+      break;
+    }
+    
      
    case SYS_CREATE:
      // Handle create system call
