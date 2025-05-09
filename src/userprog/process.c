@@ -97,37 +97,38 @@ start_process (void *file_name_)
 
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
-int
-process_wait (tid_t child_tid UNUSED) 
-{
-/////////////////////////////////////////////////////////////////////////////////////
-	/*  while(true){ //this is a busy wait
-	thread_yield();
-    }*/
-    struct thread *cur = thread_current();
-    struct thread *child = NULL;          // this is a pointer to the childdd
+   int
+   process_wait (tid_t child_tid UNUSED) 
+   {
+   /////////////////////////////////////////////////////////////////////////////////////
+	   /*  while(true){ //this is a busy wait
+	   thread_yield();
+	   }*/
+	   struct thread *cur = thread_current();
+	   struct thread *child = NULL;          // this is a pointer to the childdd
+   
+	   for (struct list_elem *e = list_begin(&cur->child_list);
+			e != list_end(&cur->child_list);
+			e = list_next(e)) {
+		   struct thread *t = list_entry(e, struct thread, child_elem);
+		   if (t->tid == child_tid) {
+			   child = t;
+			   break;
+		   }
+	   }
+	   if (child == NULL || child->parent != cur ){return -1;} // if  not found, return -1 means (invalid tid)
+	   // remove the child from the parent's child_list
+	   list_remove(&child->child_elem);
+	   sema_up(&child->wait_for_load); // wake up the child process
+	   sema_down(&cur->parent_wait);
+   
+   
+	   return cur->child_exit_status; // return the child's exit status
+   
+   /////////////////////////////////////////////////////////////////////////////////////
+   
+   }
 
-    for (struct list_elem *e = list_begin(&cur->child_list);
-         e != list_end(&cur->child_list);
-         e = list_next(e)) {
-        struct thread *t = list_entry(e, struct thread, child_elem);
-        if (t->tid == child_tid) {
-            child = t;
-            break;
-        }
-    }
-	if (child == NULL || child->parent != cur ){return -1;} // if  not found, return -1 means (invalid tid)
-	// remove the child from the parent's child_list
-	list_remove(&child->child_elem);
-	sema_up(&child->wait_for_load); // wake up the child process
-	sema_down(&cur->parent_wait);
-
-
-	return cur->child_exit_status; // return the child's exit status
-
-/////////////////////////////////////////////////////////////////////////////////////
-
-}
 
 /* Free the current process's resources. */
 void
@@ -152,6 +153,10 @@ process_exit (void)
 		pagedir_activate (NULL);
 		pagedir_destroy (pd);
 	}
+	if (cur->parent != NULL) {
+		printf ("%s: exit(%d)\n", cur->name, cur->parent->child_exit_status);
+        sema_up (&cur->parent_wait);
+    }
 }
 
 /* Sets up the CPU for running user code in the current

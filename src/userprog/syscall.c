@@ -36,6 +36,12 @@ static void check_address(void *addr)
     thread_exit();   //terminate if invalid
   }
 }
+static void syscall_exit(int status){
+  struct thread *cur = thread_current();
+  if(cur->parent !=NULL)
+    cur->parent->child_exit_status = status; 
+  process_exit();
+}
 
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
@@ -56,8 +62,9 @@ syscall_handler (struct intr_frame *f UNUSED)
      break;
      
    case SYS_EXEC:
-     // Handle exec system call
-     break;
+      int status = *(int *)(f->esp + 4);
+      syscall_exit(status);
+      break;
      
      case SYS_WAIT: {
       tid_t tid = *(tid_t *)(f->esp + 4);
