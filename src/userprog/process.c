@@ -51,6 +51,13 @@ process_execute (const char *file_name)
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	return tid;
+	sema_down(&thread_current()->wait_for_load);
+	if (thread_current()->childCreation){
+	  return tid;
+	}
+	else{
+	  return TID_ERROR;
+	}
 }
 
 /* A thread function that loads a user process and starts it
@@ -72,6 +79,20 @@ start_process (void *file_name_)
 	if_.cs = SEL_UCSEG;
 	if_.eflags = FLAG_IF | FLAG_MBS;
 	success = load (file_name, &if_.eip, &if_.esp, &save_ptr);
+
+	struct thread *parent = thread_current()->parent;
+  	if (success){
+    struct list *children = &parent->child_list;
+    struct thread *child = thread_current();
+    list_push_back(children, &child->child_elem);
+    parent->childCreation = true;
+    sema_up(&parent->wait_for_load);
+    sema_down(&thread_current()->wait_for_load);
+  }
+  else{
+    parent->childCreation = false;
+    sema_up(&parent->wait_for_load);
+  }
 
 	/* If load failed, quit. */
 	palloc_free_page (file_name);

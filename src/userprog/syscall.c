@@ -44,9 +44,9 @@ static void syscall_exit(int status){
 }
 
 static void
-syscall_handler (struct intr_frame *f UNUSED) 
+syscall_handler (struct intr_frame *f) 
 {
-  printf ("system call!\n"); 
+  //printf ("system call!\n"); 
  // Get the system call number from the stack
  
  int syscall_number = *(int *)f->esp;
@@ -57,14 +57,16 @@ syscall_handler (struct intr_frame *f UNUSED)
      syscall_halt();
      break;
      
-   case SYS_EXIT:
-     // Handle exit system call
+   case SYS_EXIT:{
+    int status = *((int *)f->esp + 1);
+    f->eax = status; 
+    syscall_exit(status);
      break;
-     
+   } 
    case SYS_EXEC:
    {
-      int status = *(int *)(f->esp + 4);
-      syscall_exit(status);
+    char* filename =(char*) (*((int *)f->esp + 1));
+    f->eax = process_execute(filename);
       break;
    } 
      case SYS_WAIT: {
