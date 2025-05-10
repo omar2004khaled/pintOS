@@ -178,8 +178,7 @@ process_exit (void)
 		pagedir_destroy (pd);
 	}
 	if (cur->parent != NULL) {
-		printf ("%s: exit(%d)\n", cur->name, cur->parent->child_exit_status);
-        sema_up (&cur->parent_wait);
+        sema_up (&cur->parent->parent_wait);
     }
 }
 
