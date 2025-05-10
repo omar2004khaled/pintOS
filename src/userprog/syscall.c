@@ -31,7 +31,17 @@ static void check_address(void *addr)
     thread_exit();   //terminate if invalid
   }
 }
+static int convert_vaddr(void *vaddr)
+{
+  check_address(vaddr);
+  int* adrr = pagedir_get_page(thread_current()->pagedir, vaddr);
+  if (adrr == NULL)
+  {
+    thread_exit();
+  }
 
+  return adrr;
+}
 // checks every char has valid address
 static void check_string(void* str)
 {
@@ -56,20 +66,6 @@ static void check_buffer(void *buffer, int size)
     it++;
   }
 }
-
-static int convert_vaddr(void *vaddr)
-{
-  check_address(vaddr);
-  int* adrr = pagedir_get_page(thread_current()->pagedir, vaddr);
-  if (adrr == NULL)
-  {
-    thread_exit();
-  }
-
-  return adrr;
-}
-
-
 static void syscall_halt(void) 
 {
   printf("(halt) begin\n");
