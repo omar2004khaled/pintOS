@@ -476,6 +476,8 @@ init_thread (struct thread *t, const char *name, int priority)
 	list_push_back (&all_list, &t->allelem);
 	intr_set_level (old_level);
 	///////////////////////////////////////////////////
+	list_init(&t->file_list);
+	t->fd = 2; //File descriptors numbered 0 and 1 are reserved for the console (from documentation)
     list_init(&t->child_list);
     t->parent = NULL;                // Set later in process_execute if needed
     t->child_exit_status = -1;       // Default invalid status

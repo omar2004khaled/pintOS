@@ -5,6 +5,8 @@
 #include "threads/thread.h"
 #include "userprog/process.h"
 #include "threads/vaddr.h"
+#include "filesys/filesys.h"   
+
 static void syscall_handler (struct intr_frame *);
 
 /* prototypes */
@@ -89,6 +91,45 @@ static void syscall_exit(int status){
   }
   thread_exit();
 }
+
+bool create(char *file_name, unsigned initial_size) {
+  bool success = filesys_create(file_name, initial_size);
+  return success;
+  
+}
+
+
+int open(char *file_name) {
+  struct file *file = filesys_open(file_name);
+  int file_fd; // file discriptor (unique id)
+  lock_acquire(&file_lock);
+  if (file != NULL) {
+    file_fd = procces_add_file(file);
+  }
+  else {
+    file_fd = -1;
+  }
+  lock_release(&file_lock);
+
+  return file_fd;
+}
+
+int procces_add_file(struct file *f){
+  struct thread *thread = thread_current();
+
+	struct process_file *process_file = malloc(sizeof(struct process_file)); // new pf to add to the fd table
+	if (process_file == NULL) {
+		return -1; 
+	}
+
+	process_file->fd = thread->fd;
+  thread->fd++; 
+	list_push_back(&thread->file_list, &process_file->elem); // add process file (opened file info) to fd table
+	
+  return process_file->fd;
+
+}
+
 static void write(struct intr_frame *f) {
   int fd = *((int *)f->esp + 1);
   char *buffer = (char *)(*((int *)f->esp + 2));
@@ -142,20 +183,39 @@ syscall_handler (struct intr_frame *f)
       break;
     }
     
-     
-   case SYS_CREATE:
-     // Handle create system call
-     // 2 args
+   case SYS_CREATE:{
+    // Handle create system call
+    // 2 args const char *file, unsigned initial_size
+     char* file = (char* )f->esp + 1;
+     unsigned* initial_size_ptr = (unsigned *)f->esp + 2;
+     check_address((void *)file);
+     check_address((void *)initial_size_ptr);
+     check_string(file);
+
+     bool success = create(file, *initial_size_ptr);
+
+     f->eax = success;
+
      break;
+   }
      
    case SYS_REMOVE:
      // Handle remove system call
      break;
      
-   case SYS_OPEN:
+   case SYS_OPEN:{
      // Handle open system call
-     break;
+     //////// IMPORTANT /////// -> When a thread/process exits, all files it opened must be closed, the list file_list must be freed should help
+     char *file = (char *)(f->esp + 1);
+     check_string((void*) file);
+
+     int fd = open(file);
+
+     f->eax = fd;
      
+     break;
+   }
+
    case SYS_FILESIZE:
      // Handle filesize system call
      break;
