@@ -119,12 +119,13 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
    int
-   process_wait (tid_t child_tid UNUSED) 
+   process_wait (tid_t child_tid) 
    {
    /////////////////////////////////////////////////////////////////////////////////////
 	   /*  while(true){ //this is a busy wait
 	   thread_yield();
 	   }*/
+	   thread_current()->waitingForChild = child_tid;  
 	   struct thread *cur = thread_current();
 	   struct thread *child = NULL;          // this is a pointer to the childdd
    
@@ -137,7 +138,9 @@ start_process (void *file_name_)
 			   break;
 		   }
 	   }
+
 	   if (child == NULL || child->parent != cur ){return -1;} // if  not found, return -1 means (invalid tid)
+	   
 	   // remove the child from the parent's child_list
 	   list_remove(&child->child_elem);
 	   sema_up(&child->wait_for_load); // wake up the child process
