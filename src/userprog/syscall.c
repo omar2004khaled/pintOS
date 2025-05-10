@@ -10,6 +10,8 @@ static void syscall_handler (struct intr_frame *);
 /* prototypes */
 static void syscall_halt(void);
 static int syscall_wait(tid_t tid);
+
+struct lock file_lock;
 /*
 
 static void syscall_exit(int status);
@@ -23,6 +25,7 @@ syscall_init (void)
 }
 static void syscall_halt(void) 
 {
+  printf("(halt) begin\n");
   shutdown_power_off();
 }
 static int syscall_wait(tid_t tid) 
@@ -43,6 +46,22 @@ static void syscall_exit(int status){
 		printf ("%s: exit(%d)\n", cur->name, status);
   }
   thread_exit();
+}
+static void write(struct intr_frame *f) {
+  int fd = *((int *)f->esp + 1);
+  char *buffer = (char *)(*((int *)f->esp + 2));
+  unsigned size = *((unsigned *)f->esp + 3);
+  
+  check_address(buffer);
+  
+  if (fd == 1) {
+    lock_acquire(&file_lock);
+    putbuf(buffer, size);
+    lock_release(&file_lock);
+    f->eax = size;
+  } else {
+    f->eax = -1; 
+  }
 }
 
 static void
@@ -99,7 +118,7 @@ syscall_handler (struct intr_frame *f)
      break;
      
    case SYS_WRITE:
-     // Handle write system call
+    write(f);
      break;
      
    case SYS_SEEK:

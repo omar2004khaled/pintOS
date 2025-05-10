@@ -178,7 +178,11 @@ process_exit (void)
 		pagedir_destroy (pd);
 	}
 	if (cur->parent != NULL) {
-        sema_up (&cur->parent->parent_wait);
+        if (cur->parent->waitingForChild == cur->tid){
+			cur->parent->waitingForChild = -1;
+			cur->parent->childCreation = false; 
+			sema_up(&cur->parent->parent_wait);
+    	}
     }
 }
 
