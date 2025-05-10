@@ -103,7 +103,12 @@ struct thread
     struct semaphore wait_for_load;      //→ Used only for initialization (process_execute and start_process).
                                         //Ensures the parent waits for the child to initialize before continuing 
      tid_t waitingForChild;
-     bool childCreation;                                   
+     bool childCreation;    
+    
+   struct list file_list;
+   int fd;
+     
+
     ////////////////////////
 
 #ifdef USERPROG
