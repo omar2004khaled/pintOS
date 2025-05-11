@@ -301,7 +301,7 @@ load (const char *file_name, void (**eip) (void), void **esp, char **save_ptr)
 	process_activate ();
 
 	/* Open executable file. */
-	printf("they are equal = %d",filesys_open (f"exit")==NULL);
+	printf("they are equal = %d",filesys_open ("exit")==NULL);
 	file = filesys_open (file_name);
 	if (file == NULL)
 	{
