@@ -165,6 +165,7 @@ static void
 register_handler (uint8_t vec_no, int dpl, enum intr_level level,
                   intr_handler_func *handler, const char *name)
 {
+  printf("register handler\n");
   ASSERT (intr_handlers[vec_no] == NULL);
   if (level == INTR_ON)
     idt[vec_no] = make_trap_gate (intr_stubs[vec_no], dpl);
@@ -202,6 +203,7 @@ void
 intr_register_int (uint8_t vec_no, int dpl, enum intr_level level,
                    intr_handler_func *handler, const char *name)
 {
+  print("init int\n");
   ASSERT (vec_no < 0x20 || vec_no > 0x2f);
   register_handler (vec_no, dpl, level, handler, name);
 }

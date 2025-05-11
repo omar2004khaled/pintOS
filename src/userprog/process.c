@@ -31,6 +31,7 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp, char** s
 tid_t
 process_execute (const char *file_name) 
 {
+	printf(">>>>>>>>>>>>>>>>>>>process execute %s\n",file_name);
 	char *fn_copy;
 	tid_t tid;
 
@@ -44,13 +45,13 @@ process_execute (const char *file_name)
 	/* Parsed file name */
 	char *save_ptr;
 	file_name = strtok_r((char *) file_name, " ", &save_ptr);
-
+	printf("before create %s \n",fn_copy);
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
 	//parent wait for child successfuly created --------------------------------------------------------------------------
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
-	return tid;
+	printf("before sema down %s\n",file_name);
 	sema_down(&thread_current()->wait_for_load);
 	if (thread_current()->childCreation){
 	  return tid;
@@ -65,10 +66,11 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-	char *file_name = file_name_;
+	printf(">>>>>>>>>>>>>>>>>>>>>>>>>starttt\n");
+	char *file_name =(char *) file_name_;
 	struct intr_frame if_;
 	bool success;
-
+	printf("in start of start %s",file_name);
 	/* the first token is file name */
 	char *save_ptr;
 	file_name = strtok_r(file_name, " ", &save_ptr);
@@ -125,6 +127,7 @@ start_process (void *file_name_)
 	   /*  while(true){ //this is a busy wait
 	   thread_yield();
 	   }*/
+	   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>waiting %d\n",child_tid);
 	   thread_current()->waitingForChild = child_tid;  
 	   struct thread *cur = thread_current();
 	   struct thread *child = NULL;          // this is a pointer to the childdd
@@ -133,19 +136,22 @@ start_process (void *file_name_)
 			e != list_end(&cur->child_list);
 			e = list_next(e)) {
 		   struct thread *t = list_entry(e, struct thread, child_elem);
+		   printf("%d",t->tid);
 		   if (t->tid == child_tid) {
 			   child = t;
 			   break;
 		   }
 	   }
 
-	   if (child == NULL || child->parent != cur ){return -1;} // if  not found, return -1 means (invalid tid)
+	   if (child == NULL || child->parent != cur ){
+		printf("fuck -1\n");
+		return -1;} // if  not found, return -1 means (invalid tid)
 	   
 	   // remove the child from the parent's child_list
 	   list_remove(&child->child_elem);
 	   sema_up(&child->wait_for_load); // wake up the child process
 	   sema_down(&cur->parent_wait);
-   
+	   printf("exit run true %d",cur->child_exit_status);
    
 	   return cur->child_exit_status; // return the child's exit status
    
@@ -158,6 +164,7 @@ start_process (void *file_name_)
 void
 process_exit (void)
 {
+	printf(">>>>>>>>>>>>>>>>>>>>>>>>>>exit\n");
 	struct thread *cur = thread_current ();
 	uint32_t *pd;
 
@@ -279,6 +286,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 bool
 load (const char *file_name, void (**eip) (void), void **esp, char **save_ptr)
 {
+	printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>load %s\n",file_name);
 	struct thread *t = thread_current ();
 	struct Elf32_Ehdr ehdr;
 	struct file *file = NULL;
@@ -293,6 +301,7 @@ load (const char *file_name, void (**eip) (void), void **esp, char **save_ptr)
 	process_activate ();
 
 	/* Open executable file. */
+	printf("they are equal = %d",filesys_open (f"exit")==NULL);
 	file = filesys_open (file_name);
 	if (file == NULL)
 	{
