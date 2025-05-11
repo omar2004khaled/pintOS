@@ -21,7 +21,7 @@ static void check_address(void *addr);
 static int convert_vaddr(void *vaddr);
 static void check_string(void* str);
 static void check_buffer(void *buffer, int size);
-void syscall_halt(void);
+static void syscall_halt(void);
 static int syscall_wait(tid_t tid);
 static void syscall_exit(int status);
 
