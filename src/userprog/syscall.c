@@ -84,7 +84,6 @@ static void syscall_exit(int status){
   struct thread *cur = thread_current();
   if (cur->parent != NULL) {
     cur->parent->child_exit_status = status;
-		printf ("%s: exit(%d)\n", cur->name, status);
   }
   thread_exit();
 }
@@ -243,5 +242,5 @@ syscall_handler (struct intr_frame *f)
      break;
  }
  
- thread_exit ();
+ //thread_exit ();
 }

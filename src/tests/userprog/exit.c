@@ -6,7 +6,6 @@
 void
 test_main (void) 
 {
-  printf("entered the tessst\n");
   exit (57);
   fail ("should have called exit(57)");
 }

@@ -153,7 +153,7 @@ start_process (void *file_name_)
 /* Free the current process's resources. */
 void
 process_exit (void)
-{
+{	
 	struct thread *cur = thread_current ();
 	uint32_t *pd;
 
@@ -176,7 +176,8 @@ process_exit (void)
 	if (cur->parent != NULL) {
         if (cur->parent->waitingForChild == cur->tid){
 			cur->parent->waitingForChild = -1;
-			cur->parent->childCreation = false; 
+			cur->parent->childCreation = false;
+			printf ("%s: exit(%d)\n", cur->name, cur->parent->child_exit_status); 
 			sema_up(&cur->parent->parent_wait);
     	}
     }
