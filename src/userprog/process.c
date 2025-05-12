@@ -173,6 +173,8 @@ process_exit (void)
 		pagedir_activate (NULL);
 		pagedir_destroy (pd);
 	}
+
+	////
 	if (cur->parent != NULL) {
         if (cur->parent->waitingForChild == cur->tid){
 			cur->parent->waitingForChild = -1;
@@ -181,6 +183,20 @@ process_exit (void)
 			sema_up(&cur->parent->parent_wait);
     	}
     }
+
+	// close all opened files
+	struct process_file *pf;
+	struct list_elem *it = list_begin(&cur->file_list);
+	while (it != list_end(&cur->file_list))
+	{
+		pf = list_entry(it, struct process_file, elem);
+		it = list_next(it);
+		file_close(pf->file);
+		list_remove(&pf->elem);
+		free(pf);
+	}
+
+	////
 }
 
 /* Sets up the CPU for running user code in the current

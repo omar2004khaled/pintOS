@@ -12,6 +12,7 @@ static void syscall_handler (struct intr_frame *);
 /* prototypes */
 static void syscall_halt(void);
 static int syscall_wait(tid_t tid);
+static struct proccess_file *get_pf(int fd);
 
 struct lock file_lock;
 /*
@@ -31,7 +32,9 @@ static void check_address(void *addr)
 {
   if (addr == NULL || !is_user_vaddr(addr) || addr < (void *)0x08048000)              //found in threads/vaddr.h
   { 
-    thread_exit();   //terminate if invalid
+    // thread_exit();   //terminate if invalid
+    // printf("Invalid address: %p\n", addr);
+    syscall_exit(-1);
   }
 }
 static int convert_vaddr(void *vaddr)
@@ -40,7 +43,9 @@ static int convert_vaddr(void *vaddr)
   int* adrr = pagedir_get_page(thread_current()->pagedir, vaddr);
   if (adrr == NULL)
   {
-    thread_exit();
+    // thread_exit();
+    // printf("Invalid address in convert_vaddr: %p\n", vaddr);
+    syscall_exit(-1);
   }
 
   return adrr;
@@ -85,18 +90,32 @@ static void syscall_exit(int status){
   if (cur->parent != NULL) {
     cur->parent->child_exit_status = status;
   }
+  // printf("%s: exit(%d)\n", thread_name(), status);
   thread_exit();
 }
 
-bool create(char *file_name, unsigned initial_size) {
-  bool success = filesys_create(file_name, initial_size);
+bool create(char *file_name, int initial_size) {
+  bool success;
+  lock_acquire(&file_lock);
+  success = filesys_create(file_name, initial_size);
+  lock_release(&file_lock);
   return success;
   
 }
 
+bool remove(char *file_name) {
+  bool success;
+  lock_acquire(&file_lock);
+  success = filesys_remove(file_name);
+  lock_release(&file_lock);
+  return success;
+
+}
 
 int open(char *file_name) {
+  lock_acquire(&file_lock);
   struct file *file = filesys_open(file_name);
+  lock_release(&file_lock);
   int file_fd; // file discriptor (unique id)
   lock_acquire(&file_lock);
   if (file != NULL) {
@@ -110,6 +129,21 @@ int open(char *file_name) {
   return file_fd;
 }
 
+int filesize(int fd) {
+
+  struct process_file *pf = get_pf(fd);
+  if (pf == NULL) {
+    return -1;
+  }  
+  
+  int file_len = 0;
+  lock_acquire(&file_lock);
+  file_len= file_length(pf->file);
+  lock_release(&file_lock);
+  return file_len;
+    
+}
+
 int procces_add_file(struct file *f){
   struct thread *thread = thread_current();
 
@@ -119,6 +153,7 @@ int procces_add_file(struct file *f){
 	}
 
 	process_file->fd = thread->fd;
+  process_file->file = f;
   thread->fd++; 
 	list_push_back(&thread->file_list, &process_file->elem); // add process file (opened file info) to fd table
 	
@@ -142,6 +177,40 @@ static void write(struct intr_frame *f) {
   }
 }
 
+static void close(int fd){
+
+  // search for file (given fd) in process file list (fd table) and close it
+  struct process_file *pf = get_pf(fd);
+  if (pf == NULL) {  
+    return;
+  }
+
+  lock_acquire(&file_lock);
+  file_close(pf->file);
+  list_remove(&pf->elem);
+  lock_release(&file_lock);
+
+  free(pf);
+
+  return;
+}
+
+// searches in the file lsit in current thread for the file with the given fd
+static struct proccess_file *get_pf(int fd){ //get process file and optionally remove it from the list
+  struct thread *curr_thread = thread_current();
+  struct list_elem *it = list_begin(&curr_thread->file_list);
+  while (it != list_end(&curr_thread->file_list)){
+    struct process_file *pf = list_entry(it, struct process_file, elem);
+    if (pf->fd == fd){
+      return pf;
+    }
+  }
+
+  return NULL;
+
+}
+
+
 static void
 syscall_handler (struct intr_frame *f) 
 {
@@ -155,10 +224,11 @@ syscall_handler (struct intr_frame *f)
  // int* ptr1 = (int*)f->esp + 1;
 
  switch (syscall_number) {
-   case SYS_HALT:
+   case SYS_HALT:{
      syscall_halt();
      break;
-     
+   }
+
    case SYS_EXIT:{
     int status = *((int *)f->esp + 1);
     f->eax = status; 
@@ -177,31 +247,43 @@ syscall_handler (struct intr_frame *f)
       break;
     }
     
+   // TEST CASES DONE
    case SYS_CREATE:{
     // Handle create system call
     // 2 args const char *file, unsigned initial_size
-     char* file = (char* )f->esp + 1;
-     unsigned* initial_size_ptr = (unsigned *)f->esp + 2;
-     check_address((void *)file);
-     check_address((void *)initial_size_ptr);
-     check_string(file);
-
-     bool success = create(file, *initial_size_ptr);
+     char* file = (char* ) *((int *) f->esp + 1);
+     int initial_size_ptr = (unsigned) *((int *)f->esp + 2);
+    //  printf("File name and size: %s %d\n", file, initial_size_ptr);
+     convert_vaddr((void *)file);
+    //  convert_vaddr((void *)initial_size_ptr);
+    //  check_string(file);
+    //  printf("create syscall (passed checks): %s\n", file);
+     bool success = create(file, initial_size_ptr);
 
      f->eax = success;
 
      break;
    }
-     
-   case SYS_REMOVE:
+  
+   // Under testing
+   case SYS_REMOVE:{
      // Handle remove system call
+     char* file = (char *)(*((int *)f->esp + 1));
+     convert_vaddr((void *)file);
+
+     f->eax = remove(file);
+
      break;
-     
+   }
+
+   // TEST CASES DONE
    case SYS_OPEN:{
      // Handle open system call
      //////// IMPORTANT /////// -> When a thread/process exits, all files it opened must be closed, the list file_list must be freed should help
-     char *file = (char *)(f->esp + 1);
-     check_string((void*) file);
+     char *file = (char *)(*((int *)f->esp + 1));
+    //  check_string((void*) file);
+     convert_vaddr((void *)file);
+
 
      int fd = open(file);
 
@@ -210,35 +292,56 @@ syscall_handler (struct intr_frame *f)
      break;
    }
 
-   case SYS_FILESIZE:
+   // Under testing
+   case SYS_FILESIZE:{
      // Handle filesize system call
+     int* fd_ptr = (int *)f->esp + 1;
+     convert_vaddr((void *) fd_ptr);
+
+     f->eax = filesize(*fd_ptr);
+     if (f->eax == -1) {
+       syscall_exit(-1);
+     }
+
      break;
-     
-   case SYS_READ:
+  }
+   case SYS_READ:{
      // Handle read system call
      // 3 args
      break;
-     
-   case SYS_WRITE:
-    write(f);
+   }
+
+   case SYS_WRITE:{
+     write(f);
      break;
-     
-   case SYS_SEEK:
+   }
+
+   case SYS_SEEK:{
      // Handle seek system call
      // 2 args
      break;
-     
-   case SYS_TELL:
+   }
+
+   case SYS_TELL:{
      // Handle tell system call
      break;
-     
-   case SYS_CLOSE:
+   }
+
+   // Under testing
+   case SYS_CLOSE:{
      // Handle close system call
+     int* fd_ptr = (int *)f->esp + 1;
+     convert_vaddr((void *) fd_ptr);
+
+     close(*fd_ptr);
+
      break;
-     
+   }
+
    default:
-     printf("Unknown system call: %d\n", syscall_number);
-     thread_exit ();
+    //  printf("Unknown system call: %d\n", syscall_number);
+    //  thread_exit ();
+    syscall_exit(-1);
      break;
  }
  
