@@ -24,6 +24,13 @@ static void check_buffer(void *buffer, int size);
 static void syscall_halt(void);
 static int syscall_wait(tid_t tid);
 static void syscall_exit(int status);
+bool create(char *file_name, int initial_size) ;
+bool remove(char *file_name) ;
+int open(char *file_name) ;
+int filesize(int fd) ;
+int procces_add_file(struct file *f);
+static int write(int fd, char *buffer, unsigned size) ;
+static void close(int fd);
+static struct proccess_file *get_pf(int fd);
 
-static void write(struct intr_frame *f);
 #endif /* userprog/syscall.h */

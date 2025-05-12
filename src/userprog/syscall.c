@@ -13,6 +13,7 @@ static void syscall_handler (struct intr_frame *);
 static void syscall_halt(void);
 static int syscall_wait(tid_t tid);
 static struct proccess_file *get_pf(int fd);
+static int write(int fd, char *buffer, unsigned size);
 
 struct lock file_lock;
 /*
@@ -161,19 +162,29 @@ int procces_add_file(struct file *f){
 
 }
 
-static void write(struct intr_frame *f) {
-  int fd = *((int *)f->esp + 1);
-  char *buffer = (char *)(*((int *)f->esp + 2));
-  unsigned size = *((unsigned *)f->esp + 3);
-  
-  check_address(buffer);
+static int write(int fd, char *buffer, unsigned size) {
+
   if (fd == 1) {
     lock_acquire(&file_lock);
     putbuf(buffer, size);
     lock_release(&file_lock);
-    f->eax = size;
-  } else {
-    f->eax = -1; 
+    return size;
+  } 
+  else if (fd == 0) { // this is stdin
+   
+  }
+  else {
+    struct process_file* pf = get_pf(fd);
+    if (pf == NULL) {
+      return -1;
+    }
+    
+    int size_written = 0;
+    lock_acquire(&file_lock);
+    size_written = file_write(pf->file, buffer, size);
+    lock_release(&file_lock);
+
+    return size_written;
   }
 }
 
@@ -312,7 +323,14 @@ syscall_handler (struct intr_frame *f)
    }
 
    case SYS_WRITE:{
-     write(f);
+    int fd = *((int *)f->esp + 1);
+    char *buffer = (char *)(*((int *)f->esp + 2));
+    unsigned size = *((unsigned *)f->esp + 3);
+    // convert_vaddr((void *)fd);
+    convert_vaddr((void *)buffer);
+    // convert_vaddr((void *)size);
+
+     f->eax = write(fd, buffer, size);
      break;
    }
 
