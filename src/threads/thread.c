@@ -182,6 +182,7 @@ thread_create (const char *name, int priority,
 
 	/* Initialize thread. */
 	init_thread (t, name, priority);
+	t->parent=thread_current();
 	tid = t->tid = allocate_tid ();
 
 	/* Prepare thread for first run by initializing its stack.

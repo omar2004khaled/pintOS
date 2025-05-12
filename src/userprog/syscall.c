@@ -23,6 +23,7 @@ static void syscall_exit(int status);
 void
 syscall_init (void) 
 {
+  lock_init(&file_lock);
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
@@ -132,7 +133,6 @@ static void write(struct intr_frame *f) {
   unsigned size = *((unsigned *)f->esp + 3);
   
   check_address(buffer);
-  
   if (fd == 1) {
     lock_acquire(&file_lock);
     putbuf(buffer, size);
@@ -148,13 +148,12 @@ syscall_handler (struct intr_frame *f)
 {
   //printf ("system call!\n"); 
  // Get the system call number from the stack
- int syscall_number = convert_vaddr((void *) f->esp);
+ int syscall_number = *(int *) convert_vaddr((void *) f->esp);
 //  int syscall_number = *(int *)f->esp;
 //  check_address(f->esp);
 
  // load_arg:
  // int* ptr1 = (int*)f->esp + 1;
-
 
  switch (syscall_number) {
    case SYS_HALT:
