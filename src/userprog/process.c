@@ -44,13 +44,11 @@ process_execute (const char *file_name)
 	/* Parsed file name */
 	char *save_ptr;
 	file_name = strtok_r((char *) file_name, " ", &save_ptr);
-
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
 	//parent wait for child successfuly created --------------------------------------------------------------------------
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
-	return tid;
 	sema_down(&thread_current()->wait_for_load);
 	if (thread_current()->childCreation){
 	  return tid;
@@ -65,10 +63,9 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-	char *file_name = file_name_;
+	char *file_name =(char *) file_name_;
 	struct intr_frame if_;
 	bool success;
-
 	/* the first token is file name */
 	char *save_ptr;
 	file_name = strtok_r(file_name, " ", &save_ptr);
@@ -79,7 +76,6 @@ start_process (void *file_name_)
 	if_.cs = SEL_UCSEG;
 	if_.eflags = FLAG_IF | FLAG_MBS;
 	success = load (file_name, &if_.eip, &if_.esp, &save_ptr);
-
 	struct thread *parent = thread_current()->parent;
   	if (success){
     struct list *children = &parent->child_list;
@@ -139,13 +135,13 @@ start_process (void *file_name_)
 		   }
 	   }
 
-	   if (child == NULL || child->parent != cur ){return -1;} // if  not found, return -1 means (invalid tid)
+	   if (child == NULL || child->parent != cur ){
+		return -1;} // if  not found, return -1 means (invalid tid)
 	   
 	   // remove the child from the parent's child_list
 	   list_remove(&child->child_elem);
 	   sema_up(&child->wait_for_load); // wake up the child process
 	   sema_down(&cur->parent_wait);
-   
    
 	   return cur->child_exit_status; // return the child's exit status
    
@@ -157,7 +153,7 @@ start_process (void *file_name_)
 /* Free the current process's resources. */
 void
 process_exit (void)
-{
+{	
 	struct thread *cur = thread_current ();
 	uint32_t *pd;
 
@@ -180,7 +176,8 @@ process_exit (void)
 	if (cur->parent != NULL) {
         if (cur->parent->waitingForChild == cur->tid){
 			cur->parent->waitingForChild = -1;
-			cur->parent->childCreation = false; 
+			cur->parent->childCreation = false;
+			printf ("%s: exit(%d)\n", cur->name, cur->parent->child_exit_status); 
 			sema_up(&cur->parent->parent_wait);
     	}
     }
@@ -381,7 +378,6 @@ load (const char *file_name, void (**eip) (void), void **esp, char **save_ptr)
 	*eip = (void (*) (void)) ehdr.e_entry;
 
 	success = true;
-
 	done:
 	/* We arrive here whether the load is successful or not. */
 	file_close (file);
