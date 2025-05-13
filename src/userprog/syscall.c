@@ -33,8 +33,6 @@ static void check_address(void *addr)
 {
   if (addr == NULL || !is_user_vaddr(addr) || addr < (void *)0x08048000)              //found in threads/vaddr.h
   { 
-    // thread_exit();   //terminate if invalid
-    // printf("Invalid address: %p\n", addr);
     syscall_exit(-1);
   }
 }
@@ -42,10 +40,8 @@ static int convert_vaddr(void *vaddr)
 {
   check_address(vaddr);
   int* adrr = pagedir_get_page(thread_current()->pagedir, vaddr);
-  if (adrr == NULL)
+  if (adrr == NULL )
   {
-    // thread_exit();
-    // printf("Invalid address in convert_vaddr: %p\n", vaddr);
     syscall_exit(-1);
   }
 
@@ -55,13 +51,12 @@ static int convert_vaddr(void *vaddr)
 static void check_string(void* str)
 {
   char* s = str;
-  // for (s; s!=0 ; s = *(char*) convert_vaddr(++s));
   while(true){
-    // check if the address is valid
-    str = convert_vaddr((void*) s);
-    if (*s == '\0') 
+    if (s == 0) 
       break;
-    str++;
+    // check if the address is valid
+    s = *(char*)convert_vaddr((void*) str++);
+
   }
   
 }
@@ -280,6 +275,7 @@ syscall_handler (struct intr_frame *f)
    case SYS_EXEC:
    {
     char* filename =(char*) (*((int *)f->esp + 1));
+    check_string(filename);
     f->eax = process_execute(filename);
       break;
    } 
