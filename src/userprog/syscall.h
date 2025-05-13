@@ -30,6 +30,7 @@ int open(char *file_name) ;
 int filesize(int fd) ;
 int procces_add_file(struct file *f);
 static int write(int fd, char *buffer, unsigned size) ;
+static int read(int fd, char *buffer, unsigned size) ;
 static void close(int fd);
 static struct proccess_file *get_pf(int fd);
 

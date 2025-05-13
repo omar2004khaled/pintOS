@@ -188,6 +188,37 @@ static int write(int fd, char *buffer, unsigned size) {
   }
 }
 
+static int read(int fd, char *buffer, unsigned size) {
+
+  if (fd == 1) {
+    
+  } 
+  else if (fd == 0) { // this is stdin
+    int res = size;
+    while(size-- > 0){
+      
+      lock_acquire(&file_lock);
+      char in = input_getc();
+      lock_release(&file_lock);
+      buffer += in; 
+    }
+    return res;
+  }
+  else {
+    struct process_file* pf = get_pf(fd);
+    if (pf == NULL) {
+      return -1;
+    }
+    
+    int size_read = 0;
+    lock_acquire(&file_lock);
+    size_read = file_read(pf->file, buffer, size);
+    lock_release(&file_lock);
+
+    return size_read;
+  }
+}
+
 static void close(int fd){
 
   // search for file (given fd) in process file list (fd table) and close it
@@ -319,6 +350,15 @@ syscall_handler (struct intr_frame *f)
    case SYS_READ:{
      // Handle read system call
      // 3 args
+    int fd = *((int *)f->esp + 1);
+    char *buffer = (char *)(*((int *)f->esp + 2));
+    unsigned size = *((unsigned *)f->esp + 3);
+    convert_vaddr((void *)buffer); 
+
+    if(fd ==1)
+     syscall_exit(-1);
+     
+    f->eax = read(fd, buffer, size);  
      break;
    }
 
