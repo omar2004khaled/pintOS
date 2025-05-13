@@ -357,7 +357,7 @@ syscall_handler (struct intr_frame *f)
 
     if(fd ==1)
      syscall_exit(-1);
-     
+
     f->eax = read(fd, buffer, size);  
      break;
    }
@@ -377,11 +377,33 @@ syscall_handler (struct intr_frame *f)
    case SYS_SEEK:{
      // Handle seek system call
      // 2 args
+     int fd = *((int *)f->esp + 1);
+     unsigned position = *((unsigned *)f->esp + 2);
+     struct process_file *pf = get_pf(fd);
+     if (pf == NULL) {
+       f->eax = -1;
+     }
+     else{
+      lock_acquire(&file_lock);
+      file_seek(pf->file, position);
+      f->eax = position;
+      lock_release(&file_lock);      
+     }
      break;
    }
 
    case SYS_TELL:{
      // Handle tell system call
+      int fd = *((int *)f->esp + 1);
+      struct process_file *pf = get_pf(fd);
+      if (pf == NULL) {
+        f->eax = -1;
+      }
+      else{
+        lock_acquire(&file_lock);
+        f->eax = file_tell(pf->file);
+        lock_release(&file_lock);      
+      }
      break;
    }
 
