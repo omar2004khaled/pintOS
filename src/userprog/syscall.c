@@ -272,13 +272,22 @@ syscall_handler (struct intr_frame *f)
     syscall_exit(status);
      break;
    } 
-   case SYS_EXEC:
-   {
-    char* filename =(char*) (*((int *)f->esp + 1));
+   case SYS_EXEC: {
+    char* filename = (char*)(*((int*)f->esp + 1));
     check_string(filename);
-    f->eax = process_execute(filename);
-      break;
-   } 
+    
+    // Create a copy of the filename in kernel space
+    char *fn_copy = palloc_get_page(0);
+    if (fn_copy == NULL) {
+        f->eax = -1;
+        break;
+    }
+    strlcpy(fn_copy, filename, PGSIZE);
+    
+    f->eax = process_execute(fn_copy);
+    palloc_free_page(fn_copy);
+    break;
+}
      case SYS_WAIT: {
       tid_t tid = *(tid_t *)(f->esp + 4);
       f->eax = process_wait(tid);
