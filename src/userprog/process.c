@@ -47,7 +47,7 @@ process_execute (const char *file_name)
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
 	//parent wait for child successfuly created --------------------------------------------------------------------------
-	if (tid == TID_ERROR)
+	if (tid == TID_ERROR) 
 		palloc_free_page (fn_copy);
 	sema_down(&thread_current()->wait_for_load);
 	if (thread_current()->childCreation){
@@ -183,7 +183,7 @@ process_exit (void)
 			sema_up(&cur->parent->parent_wait);
     	}
     }
-
+	
 	// close all opened files
 	struct process_file *pf;
 	struct list_elem *it = list_begin(&cur->file_list);
@@ -195,7 +195,7 @@ process_exit (void)
 		list_remove(&pf->elem);
 		free(pf);
 	}
-
+	file_close(cur->executable);
 	////
 }
 
@@ -395,8 +395,12 @@ load (const char *file_name, void (**eip) (void), void **esp, char **save_ptr)
 
 	success = true;
 	done:
-	/* We arrive here whether the load is successful or not. */
-	file_close (file);
+	
+	if(success){ 
+		t->executable = file;
+	}
+
+	//file_close (file);
 	return success;
 }
 
