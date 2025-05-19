@@ -108,7 +108,7 @@ struct thread
    struct list file_list;
    int fd;
      
-   struct file *executable;
+      struct file *exec_file; // File pointer for the executable file
     ////////////////////////
 
 #ifdef USERPROG
