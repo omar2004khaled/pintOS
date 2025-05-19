@@ -135,7 +135,7 @@ start_process (void *file_name_)
 		   }
 	   }
 
-	   if (child == NULL || child->parent != cur ){
+	   if (child == NULL || child->parent != cur ){ //must be in the list 
 		return -1;} // if  not found, return -1 means (invalid tid)
 	   
 	   // remove the child from the parent's child_list
@@ -195,7 +195,7 @@ process_exit (void)
 		list_remove(&pf->elem);
 		free(pf);
 	}
-	file_close(cur->executable);
+	file_close(cur->executable_file);
 	////
 }
 
@@ -397,7 +397,7 @@ load (const char *file_name, void (**eip) (void), void **esp, char **save_ptr)
 	done:
 	
 	if(success){ 
-		t->executable = file;
+		t->executable_file = file;
 	}
 
 	//file_close (file);
