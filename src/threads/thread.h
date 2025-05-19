@@ -1,12 +1,12 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
+#include "threads/synch.h"
+
 
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include "threads/synch.h"
-//#include "fixed-point.c"
-#include "fixed_point.h"
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -82,10 +82,6 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
-
-////////////////// FIX ME Task 2 //////////////////////////
-// List of locks for scheduling, we should pick the lock that has highest donated priority
-
 struct thread
   {
     /* Owned by thread.c. */
@@ -94,32 +90,27 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    // Donated priority,
-    // T1 (100) waits on T2 (20) to finish, so
-    // T2 donated priority is 100 and
-    // but if T1(20) waits on T2(100), then T2 remains as is; 
-
-    // Nested donation:
-    // T1 (100) waits on T2 (50) waits on T3 (20), so T2 and T3 should be 100
-    // Multiple donation:
-    // T1 (100), T2 (200), and T3 (500) all wait on T4 (20), so T4 should be 500
-    
-    // Each lock has a list of threads that are waiting on it
-
-    int effective_priority;             // > priority 
     struct list_elem allelem;           /* List element for all threads list. */
- 
-    int64_t wake_tick;
-    struct semaphore sleep_sema;
-    struct list_elem sleep_elem;
-    int nice;
-    real recent_cpu;
-    
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    struct list locks;
-    struct lock *waited;
-    bool waiting;
+    ////////////////////////
+    struct list child_list;        // List of child processes
+    struct list_elem child_elem;   // For parent's child_list
+    struct thread *parent;         // Parent process
+    int child_exit_status;              // Child's exit status
+    struct semaphore parent_wait;       // Semaphore for child process  → Used only for exit synchronization (process_wait and process_exit). 
+    struct semaphore wait_for_load;      //→ Used only for initialization (process_execute and start_process).
+                                        //Ensures the parent waits for the child to initialize before continuing 
+     tid_t waitingForChild;
+     bool childCreation;    
+    
+   struct list file_list;
+   int fd;
+     
+      struct file *executable_file; // File pointer for the executable file
+    ////////////////////////
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -129,7 +120,6 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
   };
 
-////////////////// Task 3 //////////////////////////
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -158,23 +148,12 @@ void thread_yield (void);
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
-////////////////// Task 2 //////////////////////////
 int thread_get_priority (void);
 void thread_set_priority (int);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
-void 
-inc_recent_cpu(void);
-void 
-update_load_avg(void);
-void
-update_recent_cpu(struct thread *t);
-void
-update_priority(struct thread *t);
 int thread_get_load_avg (void);
 
-void sort_ready_list();
-void calculate_advanced_priority_for_all(void); 
 #endif /* threads/thread.h */

@@ -5,12 +5,8 @@
 #include <stdio.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
-#include "threads/thread.h"
 #include "threads/synch.h"
-#include "lib/kernel/list.h"
-
-static struct list sleep_queue;
-
+#include "threads/thread.h"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -38,19 +34,10 @@ static void real_time_delay (int64_t num, int32_t denom);
    and registers the corresponding interrupt. */
 void
 timer_init (void) 
-{ list_init(&sleep_queue); //init here 
-
+{
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
 }
-bool wake_tick_less(const struct list_elem *a,
-  const struct list_elem *b,
-  void *aux UNUSED) {
-struct thread *ta = list_entry(a, struct thread, sleep_elem);
-struct thread *tb = list_entry(b, struct thread, sleep_elem);
-return ta->wake_tick < tb->wake_tick;
-}
-
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
 void
@@ -97,29 +84,16 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
-
-////////////////// FIX ME Task 1 //////////////////////////
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
 timer_sleep (int64_t ticks) 
 {
-//  int64_t start = timer_ticks ();
+  int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-//  while (timer_elapsed (start) < ticks) 
-//    thread_yield ();
-if (ticks <= 0) return;
-
-struct thread *cur = thread_current();
-cur->wake_tick = timer_ticks() + ticks;
-sema_init(&cur->sleep_sema, 0);  // Safe every time
-
-enum intr_level old_level = intr_disable();
-list_insert_ordered(&sleep_queue, &cur->sleep_elem, wake_tick_less, NULL);
-intr_set_level(old_level);  // Interrupts ON before blocking
-
-sema_down(&cur->sleep_sema);
+  while (timer_elapsed (start) < ticks) 
+    thread_yield ();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -192,39 +166,12 @@ timer_print_stats (void)
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
 
-
-////////////////// FIX ME Task 1 //////////////////////////
-// Note, this may make advanced scheduling tests fail
-// Must be very optimised
 /* Timer interrupt handler. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
-if (thread_mlfqs){
-  //increment the recent cpu of the running thread
-  inc_recent_cpu();
-  if(ticks % TIMER_FREQ==0){
-    update_load_avg();
-  thread_foreach(update_recent_cpu,NULL);
-  }
-  if(ticks %4==0){
-
-    calculate_advanced_priority_for_all();
-    
-    }
-}
-enum intr_level old_level = intr_disable ();
-  // Handle the sleeping thread for alarm part 
-  while (!list_empty(&sleep_queue)) {
-        struct thread *t = list_entry(list_front(&sleep_queue), struct thread, sleep_elem);
-        if (t->wake_tick > ticks) break;
-
-        list_pop_front(&sleep_queue);
-        sema_up(&t->sleep_sema);
-    }
-    intr_set_level (old_level);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

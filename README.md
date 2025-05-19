@@ -27,9 +27,7 @@ To download the most recent code from [PintOS-OS](https://pintos-os.org/) direct
 
 ## Installation Guidelines
 
-To install PintOS natively, please use the guidelines listed at the [installation document](Installation.md).
-
-To install PintOS with docker, please use the guidelines listed at the [installation with docker document](Installation_with_docker.md).
+To install PintOS please use the guidelines listed at the [installation document](Installation.md).
 
 ## Project Documents
 
@@ -46,9 +44,3 @@ Here's a list of sessions I made (in Arabic) for Alexandria University, explaini
 
 1. [Phase 1 Requirements](https://youtu.be/RLx_0nnEjaM)
 2. [Phase 2 Requirements](https://youtu.be/bFUmvVgmbOs)
-
-## Reference for Git Usage:
-
-Below is a student's guide on utilizing Git.
-
-1. [ArmaGit](https://github.com/Armaritto/ArmaGit)

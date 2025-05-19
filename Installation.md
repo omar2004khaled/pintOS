@@ -1,12 +1,14 @@
 # Installation Guidelines
-This video walks you through the installation steps in this document: <a href="https://alexuuni-my.sharepoint.com/:v:/g/personal/sajed_almorsy_alexu_edu_eg/ETpHvNYWOSxNnlNQo2KURJEBz69dNhjVduJxKwLXb7J2AA?e=tBEiSq&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D">Installation instructions explanation</a>
 
-<br>
 This installation guidelines are tested on:
 
-1. Qemu Simulator / Ubuntu 20.04 LTS
-- Note Qemu Simulator / Ubuntu 18.04 LTS is now deprecated and won't work.
+1. Qemu Simulator / Ubuntu 18.04 LTS
 
+To be added & tested in the future:
+
+1. Qemu Simulator / Ubuntu 20.04 LTS
+2. Bochs Simulator / Ubuntu 18.04 LTS
+3. Bochs Simulator / Ubutnu 18.04 LTS
 
 ## Required Dependencies
 
